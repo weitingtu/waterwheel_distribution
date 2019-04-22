@@ -6,7 +6,8 @@
 WaterStationManager::WaterStationManager():
     _stations(),
     _duration_matrix(116, std::vector<int>(116, 0)),
-    _distance_matrix(116, std::vector<int>(116, 0))
+    _distance_matrix(116, std::vector<int>(116, 0)),
+    _schedules(60, std::vector<size_t>())
 {
 }
 
@@ -50,7 +51,7 @@ bool WaterStationManager::parse(const QString &file_name)
         {
             cycle  = QString(word_vector.at(3)).toInt();
             supply = QString(word_vector.at(4)).toInt();
-            start  = QString(word_vector.at(6)).toInt();
+            start  = QString(word_vector.at(6)).toInt() - 1; // start from day 0
         }
 
         WaterStation water_station(cycle, supply, start);
@@ -84,4 +85,21 @@ bool WaterStationManager::parse(const QString &file_name)
     }
 
     return true;
+}
+
+void WaterStationManager::schedule()
+{
+    _schedules.clear();
+    _schedules.resize(60);
+    // ignore 0th station
+    for(size_t i = 1; i < _stations.size(); ++i)
+    {
+        const WaterStation& water_station = _stations[i];
+        int start = water_station.start;
+        while(start < 60)
+        {
+            _schedules[start].push_back(i);
+            start += water_station.cycle;
+        }
+    }
 }

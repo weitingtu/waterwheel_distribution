@@ -25,7 +25,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    waterstationmanager.cpp
+    waterstationmanager.cpp \
+    initialsolution.cpp \
+    truckmanager.cpp
 
 HEADERS  += mainwindow.h \
-    waterstationmanager.h
+    waterstationmanager.h \
+    initialsolution.h \
+    truckmanager.h

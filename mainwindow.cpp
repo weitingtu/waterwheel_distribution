@@ -3,6 +3,8 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <waterstationmanager.h>
+#include <truckmanager.h>
+#include <initialsolution.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -34,4 +36,8 @@ void MainWindow::_open()
 {
     QString file_name = QFileDialog::getOpenFileName(this, tr("Open file"), QString(), tr("csv (*.csv)"));
     WaterStationManager::get_inst().parse(file_name);
+    WaterStationManager::get_inst().schedule();
+
+    InitialSolution init(TruckManager::get_inst(), WaterStationManager::get_inst());
+    init.generate();
 }
