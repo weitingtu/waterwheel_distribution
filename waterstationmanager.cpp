@@ -7,6 +7,8 @@ WaterStationManager::WaterStationManager():
     _stations(),
     _duration_matrix(116, std::vector<int>(116, 0)),
     _distance_matrix(116, std::vector<int>(116, 0)),
+    _min_distance_matrix(116, std::vector<WaterStationDistance>()),
+    _max_distance_matrix(116, std::vector<WaterStationDistance>()),
     _schedules(60, std::vector<size_t>())
 {
 }
@@ -18,6 +20,9 @@ void WaterStationManager::clear()
     _distance_matrix.clear();
     _duration_matrix = std::vector<std::vector<int>>(116, std::vector<int>(116, 0));
     _distance_matrix = std::vector<std::vector<int>>(116, std::vector<int>(116, 0));
+    _min_distance_matrix = std::vector<std::vector<WaterStationDistance>>(116, std::vector<WaterStationDistance>());
+    _max_distance_matrix = std::vector<std::vector<WaterStationDistance>>(116, std::vector<WaterStationDistance>());
+    _schedules.clear();
 }
 
 bool WaterStationManager::parse(const QString &file_name)
@@ -45,12 +50,12 @@ bool WaterStationManager::parse(const QString &file_name)
         // idx, id, name, cycle, supply, address, start, duration value, duration text, distance value, distance text, ...
         int station_idx = count - 3;
         int cycle  = 0;
-        int supply = 0;
+        double supply = 0;
         int start  = 0;
         if(station_idx > 0)
         {
             cycle  = QString(word_vector.at(3)).toInt();
-            supply = QString(word_vector.at(4)).toInt();
+            supply = QString(word_vector.at(4)).toDouble();
             start  = QString(word_vector.at(6)).toInt() - 1; // start from day 0
         }
 
@@ -84,6 +89,8 @@ bool WaterStationManager::parse(const QString &file_name)
         }
     }
 
+    _save_distance_cache();
+
     return true;
 }
 
@@ -101,5 +108,23 @@ void WaterStationManager::schedule()
             _schedules[start].push_back(i);
             start += water_station.cycle;
         }
+    }
+}
+
+void WaterStationManager::_save_distance_cache()
+{
+    for(size_t i = 0; i < _stations.size(); ++i)
+    {
+        std::vector<WaterStationDistance>& min_dis = _min_distance_matrix.at(i);
+        std::vector<WaterStationDistance>& max_dis = _max_distance_matrix.at(i);
+        min_dis.reserve(_stations.size());
+        max_dis.reserve(_stations.size());
+        for(size_t j = 0; j < _stations.size(); ++j)
+        {
+            min_dis.push_back(WaterStationDistance(get_distance(i, j), j));
+            max_dis.push_back(WaterStationDistance(get_distance(i, j), j));
+        }
+        std::sort(min_dis.begin(), min_dis.end());
+        std::sort(max_dis.begin(), max_dis.end(), std::greater<WaterStationDistance>());
     }
 }

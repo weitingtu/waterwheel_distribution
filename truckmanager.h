@@ -6,9 +6,9 @@
 
 struct Truck
 {
-    Truck(int l, double k) : load(l), km_per_liter(k) {}
+    Truck(double l, double k) : load(l), km_per_liter(k) {}
 
-    int load;
+    double load;
     double km_per_liter;
 };
 
