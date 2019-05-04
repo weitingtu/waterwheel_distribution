@@ -26,14 +26,6 @@ void InitialSolution::_compute_cost_matrix(std::vector<std::vector<double> >& co
         {
             const WaterStation& target = _m.get_station(j);
             cost[i][j] = target.supply * g_water_price + ((double)_m.get_distance(i, j)) / 1000 / km_per_liter * g_diesel_price;
-//            if(i == 0 && j == 2)
-//            {
-//                printf("cost = %f = %f * %f + %d / 1000 / %f * %f\n",
-//                       cost[i][j],
-//            target.supply,  g_water_price, _m.get_distance(i, j),
-//                       km_per_liter, g_diesel_price
-//                       );
-//            }
         }
     }
 }
@@ -53,6 +45,20 @@ void InitialSolution::_compute_cost_matrix()
 
 double InitialSolution::_compute_solution_cost(size_t truck_idx, const std::vector<size_t>& stations) const
 {
+    double load = 0.0;
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        const WaterStation& water_station = _m.get_station(stations[i]);
+        load += water_station.supply;
+    }
+
+    double penalty = 0.0;
+    const Truck& truck = _t.get_truck(truck_idx);
+    if(load > truck.load)
+    {
+        penalty = (load - truck.load) * g_M;
+    }
+
     double all_cost = 0.0;
     size_t source_idx = 0;
     for(size_t i = 0; i < stations.size(); ++i)
@@ -64,7 +70,8 @@ double InitialSolution::_compute_solution_cost(size_t truck_idx, const std::vect
         source_idx = target_idx;
     }
 
-    return all_cost;
+    printf("cost = %f = %f + penalty %f\n", all_cost + penalty, all_cost, penalty);
+    return all_cost + penalty;
 }
 
 double InitialSolution::_compute_all_solution_cost(const std::vector<std::vector<size_t> >& truck_stations) const
@@ -138,20 +145,16 @@ bool InitialSolution::_check_solution(const std::vector<size_t>& stations,
     return true;
 }
 
-void InitialSolution::_add_missing_stations(const std::vector<size_t>& stations,
-                                      const std::vector<size_t>& trucks,
-                                      const std::vector<bool>& visited,
-                                      std::vector<std::vector<size_t> >& truck_stations )
+void InitialSolution::_add_missing_stations( const std::vector<bool>& visited,
+                                             std::vector<std::vector<size_t> >& truck_stations )
 {
-    (void) stations;
-    (void) trucks;
     std::vector<double> loads(3, 0.0);
     for(size_t i = 0; i < truck_stations.size(); ++i)
     {
-        const std::vector<size_t>& stations = truck_stations[i];
-        for(size_t j = 0; j < stations.size(); ++j)
+        const std::vector<size_t>& t_stations = truck_stations[i];
+        for(size_t j = 0; j < t_stations.size(); ++j)
         {
-            const WaterStation& water_station = _m.get_station(stations[j]);
+            const WaterStation& water_station = _m.get_station(t_stations[j]);
             loads[i] += water_station.supply;
         }
     }
@@ -164,20 +167,14 @@ void InitialSolution::_add_missing_stations(const std::vector<size_t>& stations,
         }
         double min_cost = std::numeric_limits<double>::max();
         size_t min_idx = std::numeric_limits<size_t>::max();
-        printf("compute penalty for station %zu\n", i);
-        const WaterStation& water_station = _m.get_station(i);
+        printf("Add unvisited station %zu\n", i);
         for(size_t j = 0; j < loads.size(); ++j)
         {
-            printf("compute penalty for truck %zu\n", j);
-            const Truck& truck = _t.get_truck(j);
-            double penalty = (loads[j] + water_station.supply - truck.load) * g_M;
-            printf("penalty = (%f + %f - %f ) * %f = %f\n", loads[j], water_station.supply, truck.load, g_M, penalty);
-
             std::vector<size_t> solution = truck_stations[j];
             solution.push_back(i);
             solution = _get_nearby_solution(solution);
 
-            double cost = _compute_solution_cost(j, solution) + penalty;
+            double cost = _compute_solution_cost(j, solution);
             if(cost < min_cost)
             {
                 min_cost = cost;
@@ -211,13 +208,10 @@ bool InitialSolution::_get_max_distance(size_t source_idx, const std::vector<boo
     return max_idx != std::numeric_limits<size_t>::max();
 }
 
-bool InitialSolution::_get_min_3_distance_within_load(size_t source_idx, double load, const std::vector<bool>& visited,
+bool InitialSolution::_get_min_distance_within_load(size_t source_idx, double load, const std::vector<bool>& visited,
                                                           size_t& min_idx) const
 {
-    // find min supply station within 3 min nearby stations
     min_idx = std::numeric_limits<size_t>::max();
-    int min_distance = std::numeric_limits<int>::max();
-    size_t count = 0;
     const std::vector<WaterStationDistance>& min_distances = _m.get_min_distances(source_idx);
 
     for(size_t i = 0; i < min_distances.size(); ++i)
@@ -236,17 +230,8 @@ bool InitialSolution::_get_min_3_distance_within_load(size_t source_idx, double 
         {
             continue;
         }
-        ++count;
-
-        if(min_distance > d.distance)
-        {
-            min_idx      = d.idx;
-            min_distance = d.distance;
-        }
-        if(count == 3)
-        {
-            break;
-        }
+        min_idx = d.idx;
+        break;
     }
     return min_idx != std::numeric_limits<size_t>::max();
 }
@@ -337,7 +322,7 @@ double InitialSolution::_generate(const std::vector<size_t>& stations,
             truck_stations.at(truck_idx).push_back(target_idx);
 
             source_idx = target_idx;
-            if(!_get_min_3_distance_within_load(source_idx, load, visited, target_idx ))
+            if(!_get_min_distance_within_load(source_idx, load, visited, target_idx ))
             {
                 printf("unable to get min distance station, next truck\n");
                 break;
@@ -348,7 +333,7 @@ double InitialSolution::_generate(const std::vector<size_t>& stations,
 
     if(!_check_solution( stations, truck_stations ))
     {
-        _add_missing_stations( stations, trucks, visited, truck_stations );
+        _add_missing_stations( visited, truck_stations );
     }
 
     for(size_t i = 0; i < truck_stations.size(); ++i)

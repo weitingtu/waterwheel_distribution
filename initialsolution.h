@@ -18,12 +18,10 @@ private:
     double _compute_all_solution_cost(const std::vector<std::vector<size_t> >& truck_stations) const;
     size_t _get_min_distance(size_t source_idx, const std::set<size_t>& targets) const;
     std::vector<size_t> _get_nearby_solution(const std::vector<size_t>& truck_stations) const;
-    void _add_missing_stations(const std::vector<size_t>& stations,
-                         const std::vector<size_t>& trucks,
-                         const std::vector<bool>& visited,
+    void _add_missing_stations(const std::vector<bool>& visited,
                          std::vector<std::vector<size_t> >& truck_stations );
     bool _get_max_distance(size_t source_idx, const std::vector<bool>& visited, size_t &max_idx) const;
-    bool _get_min_3_distance_within_load(size_t source_idx, double load, const std::vector<bool>& visited, size_t& min_idx) const;
+    bool _get_min_distance_within_load(size_t source_idx, double load, const std::vector<bool>& visited, size_t& min_idx) const;
     bool _get_min_3_distance_with_min_supply(size_t source_idx, const std::vector<bool>& visited , size_t &min_idx) const;
     bool _check_solution(const std::vector<size_t>& stations, const std::vector<std::vector<size_t> >& truck_stations );
     double _generate(const std::vector<size_t>& stations, const std::vector<size_t>& trucks,
