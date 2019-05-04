@@ -19,20 +19,22 @@ private:
     size_t _get_min_distance(size_t source_idx, const std::set<size_t>& targets) const;
     std::vector<size_t> _get_nearby_solution(const std::vector<size_t>& truck_stations) const;
     void _add_missing_stations(const std::vector<bool>& visited,
-                         std::vector<std::vector<size_t> >& truck_stations );
+                         std::vector<std::vector<size_t> >& truck_stations ) const;
     bool _get_max_distance(size_t source_idx, const std::vector<bool>& visited, size_t &max_idx) const;
     bool _get_min_distance_within_load(size_t source_idx, double load, const std::vector<bool>& visited, size_t& min_idx) const;
     bool _get_min_3_distance_with_min_supply(size_t source_idx, const std::vector<bool>& visited , size_t &min_idx) const;
-    bool _check_solution(const std::vector<size_t>& stations, const std::vector<std::vector<size_t> >& truck_stations );
-    double _generate(const std::vector<size_t>& stations, const std::vector<size_t>& trucks,
-                     std::vector<std::vector<size_t> > &truck_stations);
-    void _generate(const std::vector<size_t>& stations);
-    void _compute_cost_matrix(std::vector<std::vector<double> > &cost, double km_per_liter);
+    bool _check_solution(const std::vector<size_t>& stations, const std::vector<std::vector<size_t> >& truck_stations ) const;
+    double _group_station(const std::vector<size_t>& stations, const std::vector<size_t>& trucks,
+                     std::vector<std::vector<size_t> > &truck_stations) const;
+    std::vector<std::vector<size_t> > _group_station(const std::vector<size_t>& stations) const;
+    void _compute_cost_matrix(std::vector<std::vector<double> > &cost, double km_per_liter) const;
+    void _compute_wage_cost_matrix(std::vector<std::vector<double> >& cost, int wage) const;
     void _compute_cost_matrix();
 
     const TruckManager& _t;
     const WaterStationManager& _m;
     std::vector<std::vector<std::vector<double> > > _cost_matrix;
+    std::vector<std::vector<std::vector<double> > > _wage_cost_matrix;
 };
 
 #endif // INITIALSOLUTION_H

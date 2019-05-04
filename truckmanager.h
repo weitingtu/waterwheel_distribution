@@ -6,10 +6,11 @@
 
 struct Truck
 {
-    Truck(double l, double k) : load(l), km_per_liter(k) {}
+    Truck(double l, double k, int w) : load(l), km_per_liter(k), wage(w) {}
 
     double load;
     double km_per_liter;
+    int    wage;
 };
 
 class TruckManager
