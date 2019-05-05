@@ -150,7 +150,7 @@ std::vector<size_t> InitialSolution::_get_nearby_solution(const std::vector<size
     return solution;
 }
 
-bool InitialSolution::_check_solution(const std::vector<size_t>& stations,
+bool InitialSolution::_is_all_solution_visited(const std::vector<size_t>& stations,
                                       const std::vector<std::vector<size_t> >& truck_stations ) const
 {
     size_t s = 0;
@@ -357,7 +357,7 @@ double InitialSolution::_group_station(const std::vector<size_t>& stations,
         }
     }
 
-    if(!_check_solution( stations, truck_stations ))
+    if(!_is_all_solution_visited( stations, truck_stations ))
     {
         _add_missing_stations( visited, truck_stations );
     }
@@ -393,15 +393,101 @@ std::vector<std::vector<size_t> > InitialSolution::_group_station(const std::vec
     return min_truck_stations;
 }
 
+void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, std::vector<size_t>& stations, std::vector<size_t>& removed_stations) const
+{
+    const Truck& truck = _t.get_truck(truck_idx);
+    double load = 0.0;
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        if(ignored_stations.find(stations[i]) != ignored_stations.end())
+        {
+            continue;
+        }
+        const WaterStation& water_station = _m.get_station(stations[i]);
+        load += water_station.supply;
+    }
+
+    while(truck.load < load)
+    {
+        double r01 = (double)(rand()) / (RAND_MAX + 1);
+        double rnd = r01 * (stations.size());
+        size_t selected_idx = (size_t) rnd;
+        size_t station_idx = stations.at(selected_idx);
+        printf("truck load %f < %f, remove station %zu\n", truck.load, load, station_idx);
+
+        const WaterStation& water_station = _m.get_station(station_idx);
+        load -= water_station.supply;
+
+        removed_stations.push_back(station_idx);
+    }
+}
+
+void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, std::vector<std::vector<size_t> >& stations, std::vector<size_t>& removed_stations) const
+{
+    removed_stations.clear();
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        _check_solution(ignored_stations, i, stations[i], removed_stations);
+    }
+}
+
+void InitialSolution::_check_solution(std::vector<std::vector<std::vector<size_t> > >& stations) const
+{
+    std::set<size_t> ignored_stations;
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        std::vector<size_t> removed_stations;
+        _check_solution(ignored_stations, stations[i], removed_stations);
+
+        for(size_t j = 0; j < removed_stations.size(); ++j)
+        {
+            ignored_stations.insert(removed_stations[j]);
+        }
+    }
+
+    _change_start(ignored_stations);
+}
+
+void InitialSolution::_change_start(size_t idx) const
+{
+    const WaterStation& water_station = _m.get_station(idx);
+    int start = water_station.start;
+
+    while(true)
+    {
+        double r01 = (double)(rand()) / (RAND_MAX + 1);
+        double rnd = r01 * water_station.cycle;
+        if(start != (int) rnd)
+        {
+            printf("change station %zu start from %d to %d\n", idx, start, (int) rnd);
+            start = (int) rnd;
+            break;
+        }
+    }
+}
+
+void InitialSolution::_change_start(const std::set<size_t>& ignored_stations) const
+{
+    for(size_t idx : ignored_stations)
+    {
+        _change_start(idx);
+    }
+}
+
 void InitialSolution::generate()
 {
+    srand(0);
     _compute_cost_matrix();
-    _group_station(_m.get_schedule(1));
-    return;
+//    _group_station(_m.get_schedule(1));
+//    return;
 
     std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
-    for(size_t i = 0; i < _m.get_schedule_size(); ++i)
+//    for(size_t i = 0; i < _m.get_schedule_size(); ++i)
+    for(size_t i = 1; i < _m.get_schedule_size(); ++i)
     {
         schedule_solutions.push_back( _group_station(_m.get_schedule(i)) );
+        break;
     }
+
+    _check_solution(schedule_solutions);
 }
