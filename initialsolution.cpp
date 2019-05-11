@@ -478,14 +478,18 @@ void InitialSolution::generate()
 {
     srand(0);
     _compute_cost_matrix();
-//    _group_station(_m.get_schedule(1));
+
+    std::vector<int> station_start = _m.get_station_start();
+    std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
+
+//    _group_station(schedule.at(0));
 //    return;
 
     std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
 //    for(size_t i = 0; i < _m.get_schedule_size(); ++i)
-    for(size_t i = 1; i < _m.get_schedule_size(); ++i)
+    for(size_t i = 1; i < schedule.size(); ++i)
     {
-        schedule_solutions.push_back( _group_station(_m.get_schedule(i)) );
+        schedule_solutions.push_back( _group_station(schedule.at(i)) );
         break;
     }
 

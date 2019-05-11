@@ -111,6 +111,38 @@ void WaterStationManager::schedule()
     }
 }
 
+std::vector<int> WaterStationManager::get_station_start() const
+{
+    std::vector<int> station_start;
+    station_start.reserve(_stations.size());
+
+    for(size_t i = 0; i < _stations.size(); ++i)
+    {
+        station_start.push_back(_stations.at(i).start);
+    }
+
+    return station_start;
+}
+
+std::vector<std::vector<size_t> > WaterStationManager::get_schedule(const std::vector<int>& station_start) const
+{
+    std::vector<std::vector<size_t> > schedules;
+    schedules.resize(60);
+    // ignore 0th station
+    for(size_t i = 1; i < station_start.size(); ++i)
+    {
+        const WaterStation& water_station = _stations[i];
+        int start = station_start[i];
+        while(start < 60)
+        {
+            schedules[start].push_back(i);
+            start += water_station.cycle;
+        }
+    }
+
+    return schedules;
+}
+
 void WaterStationManager::_save_distance_cache()
 {
     for(size_t i = 0; i < _stations.size(); ++i)

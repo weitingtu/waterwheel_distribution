@@ -55,6 +55,9 @@ public:
     size_t get_schedule_size() const { return _schedules.size(); }
     const std::vector<size_t> get_schedule(size_t i) const { return _schedules.at(i); }
 
+    std::vector<int> get_station_start() const;
+    std::vector<std::vector<size_t> > get_schedule(const std::vector<int>& station_start) const;
+
 private:
     void _save_distance_cache();
 
