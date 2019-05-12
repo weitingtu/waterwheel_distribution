@@ -415,7 +415,7 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
         double rnd = r01 * (stations.size());
         size_t selected_idx = (size_t) rnd;
         size_t station_idx = stations.at(selected_idx);
-        printf("truck load %f < %f, remove station %zu\n", truck.load, load, station_idx);
+//        printf("truck load %f < %f, remove station %zu\n", truck.load, load, station_idx);
 
         const WaterStation& water_station = _m.get_station(station_idx);
         load -= water_station.supply;
@@ -461,9 +461,12 @@ bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
                                     const std::vector<int>& station_start,
                                     std::vector<int>& new_station_start) const
 {
-    size_t count = 20;
-    while (count > 0) {
-        count--;
+    const size_t max_count = 20;
+    size_t count = 0;
+    while (count < max_count) {
+        printf("Run change station iteration %zu\n", count);
+        count++;
+        new_station_start = station_start;
         _change_start(ignored_stations, station_start, new_station_start);
         if(tabu.find(new_station_start) == tabu.end())
         {
@@ -471,7 +474,7 @@ bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
         }
     }
 
-    if(count == 0)
+    if(count == max_count)
     {
         return false;
     }
@@ -493,7 +496,7 @@ void InitialSolution::_change_start(size_t idx,
         double rnd = r01 * water_station.cycle;
         if(start != (int) rnd)
         {
-            printf("change station %zu start from %d to %d\n", idx, start, (int) rnd);
+//            printf("change station %zu start from %d to %d\n", idx, start, (int) rnd);
             start = (int) rnd;
             break;
         }
@@ -523,10 +526,13 @@ void InitialSolution::generate()
     std::set<std::vector<int>> tabu;
 
     std::vector<int> station_start = _m.get_station_start();
-    size_t count = 20;
-    while(count > 0)
+    const size_t max_count = 2000;
+    size_t count = 0;
+    while(count < max_count)
     {
-        --count;
+        printf("Run iteration %zu ", count);
+        ++count;
+
         tabu.insert(station_start);
 
         std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
@@ -540,8 +546,10 @@ void InitialSolution::generate()
             cost += solution_cost;
         }
 
+        printf("cost = %f\n", cost);
         if(cost <min_cost)
         {
+            printf("Update min cost from %f to %f\n", min_cost, cost);
             min_cost = cost;
             min_station_start = station_start;
         }
@@ -560,8 +568,8 @@ void InitialSolution::generate()
         }
         station_start = updated_station_start;
     }
-    if(0 == count)
+    if(max_count == count)
     {
-        printf("Finish iteration due to reach max count\n");
+        printf("Finish iteration due to reach max count %zu\n", max_count);
     }
 }
