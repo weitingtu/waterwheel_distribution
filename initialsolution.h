@@ -26,21 +26,25 @@ private:
     bool _is_all_solution_visited(const std::vector<size_t>& stations, const std::vector<std::vector<size_t> >& truck_stations ) const;
     double _group_station(const std::vector<size_t>& stations, const std::vector<size_t>& trucks,
                      std::vector<std::vector<size_t> > &truck_stations) const;
-    std::vector<std::vector<size_t> > _group_station(const std::vector<size_t>& stations) const;
-    void _compute_cost_matrix(std::vector<std::vector<double> > &cost, double km_per_liter) const;
+    std::vector<std::vector<size_t> > _group_station(const std::vector<size_t>& stations, double &min_cost) const;
+    void _compute_distance_cost_matrix(std::vector<std::vector<double> > &cost, double km_per_liter) const;
     void _compute_wage_cost_matrix(std::vector<std::vector<double> >& cost, int wage) const;
-    void _compute_cost_matrix();
+    void _compute_distance_cost_matrix();
 
-    void _check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, std::vector<size_t>& stations, std::vector<size_t>& removed_stations) const;
-    void _check_solution(const std::set<size_t>& ignored_stations, std::vector<std::vector<size_t> >& stations, std::vector<size_t>& removed_stations) const;
-    void _check_solution(std::vector<std::vector<std::vector<size_t> > >& stations) const;
+    void _check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, const std::vector<size_t> &stations, std::vector<size_t>& removed_stations) const;
+    void _check_solution(const std::set<size_t>& ignored_stations, const std::vector<std::vector<size_t> > &stations, std::vector<size_t>& removed_stations) const;
+    bool _check_solution(const std::vector<std::vector<std::vector<size_t> > >& stations, std::set<size_t>& ignored_stations ) const;
 
-    void _change_start(size_t idx) const;
-    void _change_start(const std::set<size_t>& ignored_stations) const;
+    void _change_start(size_t idx, const std::vector<int> &station_start, std::vector<int> &new_station_start) const;
+    void _change_start(const std::set<size_t>& ignored_stations, const std::vector<int> &station_start, std::vector<int> &new_station_start) const;
+    bool _change_start(const std::set<std::vector<int> >& tabu,
+                       const std::set<size_t>& ignored_stations,
+                       const std::vector<int>& station_start,
+                       std::vector<int>& new_station_start) const;
 
     const TruckManager& _t;
     const WaterStationManager& _m;
-    std::vector<std::vector<std::vector<double> > > _cost_matrix;
+    std::vector<std::vector<std::vector<double> > > _distance_cost_matrix;
     std::vector<std::vector<std::vector<double> > > _wage_cost_matrix;
 };
 

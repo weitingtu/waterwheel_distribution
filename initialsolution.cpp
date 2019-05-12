@@ -12,12 +12,12 @@ static const int minutes_per_ton     = 3;
 InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManager &m) :
     _t(t),
     _m(m),
-    _cost_matrix(),
+    _distance_cost_matrix(),
     _wage_cost_matrix()
 {
 }
 
-void InitialSolution::_compute_cost_matrix(std::vector<std::vector<double> >& cost, double km_per_liter) const
+void InitialSolution::_compute_distance_cost_matrix(std::vector<std::vector<double> >& cost, double km_per_liter) const
 {
     size_t size = _m.get_station_size();
 
@@ -54,18 +54,18 @@ void InitialSolution::_compute_wage_cost_matrix(std::vector<std::vector<double> 
     }
 }
 
-void InitialSolution::_compute_cost_matrix()
+void InitialSolution::_compute_distance_cost_matrix()
 {
     size_t truck_size = _t.get_truck_size();
-    _cost_matrix.clear();
-    _cost_matrix.resize(truck_size);
+    _distance_cost_matrix.clear();
+    _distance_cost_matrix.resize(truck_size);
     _wage_cost_matrix.clear();
     _wage_cost_matrix.resize(truck_size);
 
     for(size_t i = 0; i < truck_size; ++i)
     {
         const Truck& truck = _t.get_truck(i);
-        _compute_cost_matrix(_cost_matrix.at(i), truck.km_per_liter);
+        _compute_distance_cost_matrix(_distance_cost_matrix.at(i), truck.km_per_liter);
         _compute_wage_cost_matrix(_wage_cost_matrix.at(i), truck.wage);
     }
 }
@@ -91,7 +91,8 @@ double InitialSolution::_compute_solution_cost(size_t truck_idx, const std::vect
     for(size_t i = 0; i < stations.size(); ++i)
     {
         size_t target_idx = stations[i];
-        double cost = _cost_matrix.at(truck_idx).at(source_idx).at(target_idx);
+        double cost = _distance_cost_matrix.at(truck_idx).at(source_idx).at(target_idx);
+        cost += _wage_cost_matrix.at(truck_idx).at(source_idx).at(target_idx);
 //        printf("%zu truck %zu -> %zu cost %f\n", truck_idx, source_idx, target_idx, cost );
         all_cost += cost;
         source_idx = target_idx;
@@ -372,11 +373,12 @@ double InitialSolution::_group_station(const std::vector<size_t>& stations,
     return cost;
 }
 
-std::vector<std::vector<size_t> > InitialSolution::_group_station(const std::vector<size_t>& stations) const
+std::vector<std::vector<size_t> > InitialSolution::_group_station(const std::vector<size_t>& stations,
+                                                                  double& min_cost) const
 {
     std::vector<size_t> trucks = {0, 1, 2};
     std::vector<std::vector<size_t> > min_truck_stations(trucks.size());
-    double min_cost = std::numeric_limits<double>::max();
+    min_cost = std::numeric_limits<double>::max();
     do
     {
         std::vector<std::vector<size_t> > truck_stations(trucks.size());
@@ -393,7 +395,7 @@ std::vector<std::vector<size_t> > InitialSolution::_group_station(const std::vec
     return min_truck_stations;
 }
 
-void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, std::vector<size_t>& stations, std::vector<size_t>& removed_stations) const
+void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, const std::vector<size_t>& stations, std::vector<size_t>& removed_stations) const
 {
     const Truck& truck = _t.get_truck(truck_idx);
     double load = 0.0;
@@ -422,7 +424,7 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
     }
 }
 
-void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, std::vector<std::vector<size_t> >& stations, std::vector<size_t>& removed_stations) const
+void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, const std::vector<std::vector<size_t> >& stations, std::vector<size_t>& removed_stations) const
 {
     removed_stations.clear();
     for(size_t i = 0; i < stations.size(); ++i)
@@ -431,9 +433,10 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
     }
 }
 
-void InitialSolution::_check_solution(std::vector<std::vector<std::vector<size_t> > >& stations) const
+bool InitialSolution::_check_solution(const std::vector<std::vector<std::vector<size_t> > >& stations,
+                                      std::set<size_t>& ignored_stations ) const
 {
-    std::set<size_t> ignored_stations;
+    ignored_stations.clear();
     for(size_t i = 0; i < stations.size(); ++i)
     {
         std::vector<size_t> removed_stations;
@@ -445,13 +448,44 @@ void InitialSolution::_check_solution(std::vector<std::vector<std::vector<size_t
         }
     }
 
-    _change_start(ignored_stations);
+    if(ignored_stations.empty())
+    {
+        return true;
+    }
+
+    return false;
 }
 
-void InitialSolution::_change_start(size_t idx) const
+bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
+                                    const std::set<size_t>& ignored_stations,
+                                    const std::vector<int>& station_start,
+                                    std::vector<int>& new_station_start) const
+{
+    size_t count = 20;
+    while (count > 0) {
+        count--;
+        _change_start(ignored_stations, station_start, new_station_start);
+        if(tabu.find(new_station_start) == tabu.end())
+        {
+            break;
+        }
+    }
+
+    if(count == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void InitialSolution::_change_start(size_t idx,
+                                    const std::vector<int>& station_start,
+                                    std::vector<int>& new_station_start
+                                    ) const
 {
     const WaterStation& water_station = _m.get_station(idx);
-    int start = water_station.start;
+    int start = station_start.at(idx);
 
     while(true)
     {
@@ -464,34 +498,70 @@ void InitialSolution::_change_start(size_t idx) const
             break;
         }
     }
+    new_station_start.at(idx) = start;
 }
 
-void InitialSolution::_change_start(const std::set<size_t>& ignored_stations) const
+void InitialSolution::_change_start(const std::set<size_t>& ignored_stations,
+                                    const std::vector<int>& station_start,
+                                    std::vector<int>& new_station_start
+                                    ) const
 {
     for(size_t idx : ignored_stations)
     {
-        _change_start(idx);
+        _change_start(idx, station_start, new_station_start);
     }
 }
 
 void InitialSolution::generate()
 {
     srand(0);
-    _compute_cost_matrix();
+    _compute_distance_cost_matrix();
+
+    double min_cost = std::numeric_limits<double>::max();
+    std::vector<int> min_station_start;
+
+    std::set<std::vector<int>> tabu;
 
     std::vector<int> station_start = _m.get_station_start();
-    std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
-
-//    _group_station(schedule.at(0));
-//    return;
-
-    std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
-//    for(size_t i = 0; i < _m.get_schedule_size(); ++i)
-    for(size_t i = 1; i < schedule.size(); ++i)
+    size_t count = 20;
+    while(count > 0)
     {
-        schedule_solutions.push_back( _group_station(schedule.at(i)) );
-        break;
-    }
+        --count;
+        tabu.insert(station_start);
 
-    _check_solution(schedule_solutions);
+        std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
+
+        std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
+        double cost = 0.0;
+        for(size_t i = 0; i < _m.get_schedule_size(); ++i)
+        {
+            double solution_cost = std::numeric_limits<double>::max();
+            schedule_solutions.push_back( _group_station(schedule.at(i), solution_cost) );
+            cost += solution_cost;
+        }
+
+        if(cost <min_cost)
+        {
+            min_cost = cost;
+            min_station_start = station_start;
+        }
+
+        std::set<size_t> ignored_stations;
+        if(_check_solution(schedule_solutions, ignored_stations))
+        {
+            printf("All stations are satisfied. Finished\n");
+            break;
+        }
+        std::vector<int> updated_station_start;
+        if(!_change_start( tabu, ignored_stations, station_start, updated_station_start))
+        {
+            printf("Unable to find new station start. Exit\n");
+            break;
+        }
+        station_start = updated_station_start;
+    }
+    if(0 == count)
+    {
+        printf("Finish iteration due to reach max count\n");
+    }
 }
