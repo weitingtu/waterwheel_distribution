@@ -50,6 +50,7 @@ public:
     const WaterStation& get_station(size_t i) const { return _stations.at(i); }
     int get_duration(size_t i, size_t j) const { return _duration_matrix.at(i).at(j); }
     int get_distance(size_t i, size_t j) const { return _distance_matrix.at(i).at(j); }
+    double get_expected_value(size_t i, size_t j) const { return _expected_value_matrix.at(i).at(j); }
     const std::vector<WaterStationDistance>& get_min_distances(size_t i) const { return _min_distance_matrix.at(i); }
     const std::vector<WaterStationDistance>& get_max_distances(size_t i) const { return _max_distance_matrix.at(i); }
     size_t get_schedule_size() const { return _schedules.size(); }
@@ -64,6 +65,7 @@ private:
     std::vector<WaterStation> _stations;
     std::vector<std::vector<int>> _duration_matrix;
     std::vector<std::vector<int>> _distance_matrix;
+    std::vector<std::vector<double>> _expected_value_matrix;
     std::vector<std::vector<WaterStationDistance>> _min_distance_matrix;
     std::vector<std::vector<WaterStationDistance>> _max_distance_matrix;
     std::vector<std::vector<size_t> > _schedules;

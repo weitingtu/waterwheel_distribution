@@ -9,6 +9,14 @@ static const double g_M            = 1000;
 static const int minutes_per_station = 5;
 static const int minutes_per_ton     = 3;
 
+static const int ant_num = 100;
+static const int alpha = 1;
+static const int beta  = 2;
+static const int Q     = 100;
+static const double rho = 0.6;
+static const double rho_prime = 0.7;
+static const double q0 = 0.7;
+
 InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManager &m) :
     _t(t),
     _m(m),
@@ -515,10 +523,16 @@ void InitialSolution::_change_start(const std::set<size_t>& ignored_stations,
     }
 }
 
-void InitialSolution::generate()
+void InitialSolution::init()
 {
     srand(0);
     _compute_distance_cost_matrix();
+}
+
+void InitialSolution::generate()
+{
+//    srand(0);
+//    _compute_distance_cost_matrix();
 
     double min_cost = std::numeric_limits<double>::max();
     std::vector<int> min_station_start;
@@ -526,7 +540,7 @@ void InitialSolution::generate()
     std::set<std::vector<int>> tabu;
 
     std::vector<int> station_start = _m.get_station_start();
-    const size_t max_count = 2000;
+    const size_t max_count = 20;
     size_t count = 0;
     while(count < max_count)
     {
@@ -572,4 +586,221 @@ void InitialSolution::generate()
     {
         printf("Finish iteration due to reach max count %zu\n", max_count);
     }
+}
+
+std::vector<std::vector<double>> InitialSolution::_create_value_matrix(
+        const std::vector<std::vector<double>>& pheromone_matrix
+        ) const
+{
+    std::vector<std::vector<double>> value_matrix;
+    size_t size = _m.get_station_size();
+
+    value_matrix.resize(size);
+    for(size_t i = 0; i < size; ++i)
+    {
+        value_matrix[i].resize(size);
+        for(size_t j = 0; j < size; ++j)
+        {
+            if(_m.get_expected_value(i, j) > 0)
+            {
+                value_matrix[i][j] = pow(pheromone_matrix[i][j], alpha)
+                        * pow(_m.get_expected_value(i, j), beta);
+            }
+            else
+            {
+                value_matrix[i][j] = 0.0;
+            }
+
+        }
+    }
+
+    return value_matrix;
+}
+
+size_t InitialSolution::_develop( const std::vector<std::vector<double>>& value_matrix,
+                                  const std::vector<size_t>& visited,
+                                  size_t source_idx,
+                                  const std::vector<size_t>& stations) const
+{
+    if(stations.empty())
+    {
+        printf("error, empty stations\n");
+        return std::numeric_limits<size_t>::max();
+    }
+
+    size_t max_idx = std::numeric_limits<size_t>::max();
+    double max_value = std::numeric_limits<double>::lowest();
+
+    for(size_t i = 0; i <stations.size(); ++i)
+    {
+        size_t target_idx = stations[i];
+        if(visited[target_idx])
+        {
+            continue;
+        }
+        if(source_idx == target_idx)
+        {
+            continue;
+        }
+        if(max_value < value_matrix[source_idx][target_idx])
+        {
+            max_idx = target_idx;
+            max_value = value_matrix[source_idx][target_idx];
+        }
+    }
+
+    return max_idx;
+}
+
+size_t InitialSolution::_explore( const std::vector<std::vector<double>>& value_matrix,
+                                  const std::vector<size_t>& visited,
+                                  size_t source_idx,
+                                  const std::vector<size_t>& stations) const
+{
+    if(stations.empty())
+    {
+        printf("error, empty stations\n");
+        return std::numeric_limits<size_t>::max();
+    }
+
+    double sum = 0.0;
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        size_t target_idx = stations[i];
+        if(visited[target_idx])
+        {
+            continue;
+        }
+        sum += value_matrix[source_idx][target_idx];
+    }
+
+    std::vector<double> prob(stations.size(), 0.0);
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        size_t target_idx = stations[i];
+        if(visited[target_idx])
+        {
+            continue;
+        }
+        prob[i] = value_matrix[source_idx][target_idx] / sum;
+    }
+
+    std::vector<double> cp(stations.size(), 0.0);
+    cp[0] = prob[0];
+    for(size_t i = 1; i <prob.size(); ++i)
+    {
+        cp[i] = cp[i-1] + prob[i];
+    }
+
+    size_t idx = std::numeric_limits<size_t>::max();
+    double rf = rand() / (RAND_MAX + 1.0);
+    for(size_t i = 0; i < cp.size(); ++i)
+    {
+        if(rf < cp[i])
+        {
+            idx = stations[i];
+            break;
+        }
+    }
+
+    return idx;
+}
+
+bool InitialSolution::_is_develop() const
+{
+    double rf = rand() / (RAND_MAX + 1.0);
+
+    if(rf < q0)
+    {
+        printf("rf %f < q0 %f, select develop\n", rf, q0);
+    }
+    else
+    {
+        printf("rf %f >= q0 %f, select explore\n", rf, q0);
+    }
+    return rf < q0;
+}
+
+double InitialSolution::_get_L(const std::vector<size_t>& stations) const
+{
+    double L = 0.0;
+    size_t source_idx = 0;
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        size_t target_idx = stations[i];
+        L += _m.get_distance(source_idx, target_idx);
+        source_idx = target_idx;
+    }
+    L += _m.get_distance(source_idx, 0);
+
+    return L / 1000;
+}
+
+void InitialSolution::_local_update_pheromone( const std::vector<size_t>& stations,
+                                         double L,
+                                         size_t source_idx, size_t target_idx,
+                                         std::vector<double>& pheromone) const
+{
+
+    for(size_t i = 0; i <stations.size(); ++i)
+    {
+        size_t idx = stations[i];
+        if(source_idx == idx)
+        {
+            continue;
+        }
+        if(target_idx == idx)
+        {
+            pheromone[idx] = pheromone[idx] * (1 - rho) + rho * (1 / L);
+        }
+        else
+        {
+            pheromone[idx] = pheromone[idx] * (1 - rho);
+
+        }
+    }
+}
+
+std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) const
+{
+    if(stations.empty())
+    {
+        printf("error, empty stations\n");
+        return std::vector<size_t>();
+    }
+    double L = _get_L(stations);
+    size_t N = stations.size() + 1;
+    double tau0 = 1 / (L * N);
+//    printf("L = %f, N = %d, tau0 = %.10f\n", L, N, tau0);
+
+    std::vector<std::vector<double>> pheromone_matrix = std::vector<std::vector<double>>(_m.get_station_size(), std::vector<double>(_m.get_station_size(), tau0));
+    std::vector<std::vector<double>> value_matrix = _create_value_matrix( pheromone_matrix);
+    std::vector<size_t> visited(stations.size(), true);
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        visited[stations[i]] = false;
+    }
+    visited[0] = true;
+
+    std::vector<size_t> path;
+
+    size_t source_idx = 0;
+    while(path.size() < stations.size())
+    {
+        size_t target_idx = _is_develop() ? _develop(value_matrix, visited, source_idx, stations)
+                                        : _explore(value_matrix, visited, source_idx, stations);
+        visited[target_idx] = true;
+        path.push_back(target_idx);
+        _local_update_pheromone(stations, L, source_idx, target_idx, pheromone_matrix[source_idx]);
+        source_idx = target_idx;
+    }
+
+    return path;
+}
+
+void InitialSolution::aco()
+{
+//        std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
+    std::vector<size_t> stations = {2, 38, 37, 34, 35};
+   _aco( stations );
 }

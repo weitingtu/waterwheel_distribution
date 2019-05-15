@@ -39,5 +39,7 @@ void MainWindow::_open()
     WaterStationManager::get_inst().schedule();
 
     InitialSolution init(TruckManager::get_inst(), WaterStationManager::get_inst());
-    init.generate();
+    init.init();
+//    init.generate();
+    init.aco();
 }
