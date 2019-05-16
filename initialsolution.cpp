@@ -1,6 +1,7 @@
 #include "initialsolution.h"
 #include "waterstationmanager.h"
 #include "truckmanager.h"
+#include <tgmath.h>
 
 static const double g_diesel_price = 26.3;
 static const double g_water_price  = 17;
@@ -529,11 +530,19 @@ void InitialSolution::init()
     _compute_distance_cost_matrix();
 }
 
+//double InitialSolution::
+//        std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
+//        std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
+//        double cost = 0.0;
+//        for(size_t i = 0; i < _m.get_schedule_size(); ++i)
+//        {
+//            double solution_cost = std::numeric_limits<double>::max();
+//            schedule_solutions.push_back( _group_station(schedule.at(i), solution_cost) );
+//            cost += solution_cost;
+//        }
+
 void InitialSolution::generate()
 {
-//    srand(0);
-//    _compute_distance_cost_matrix();
-
     double min_cost = std::numeric_limits<double>::max();
     std::vector<int> min_station_start;
 
@@ -603,8 +612,8 @@ std::vector<std::vector<double>> InitialSolution::_create_value_matrix(
         {
             if(_m.get_expected_value(i, j) > 0)
             {
-                value_matrix[i][j] = pow(pheromone_matrix[i][j], alpha)
-                        * pow(_m.get_expected_value(i, j), beta);
+                value_matrix[i][j] = std::pow(pheromone_matrix[i][j], alpha)
+                        * std::pow(_m.get_expected_value(i, j), beta);
             }
             else
             {
