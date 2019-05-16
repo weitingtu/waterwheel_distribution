@@ -40,6 +40,6 @@ void MainWindow::_open()
 
     InitialSolution init(TruckManager::get_inst(), WaterStationManager::get_inst());
     init.init();
-//    init.generate();
-    init.aco();
+    init.generate();
+//    init.aco();
 }
