@@ -13,8 +13,9 @@ class InitialSolution
 public:
     InitialSolution(const TruckManager& t, const WaterStationManager& m);
     void init();
-    void generate();
-    void aco();
+    std::vector<std::vector<std::vector<size_t> > > generate();
+    void test_aco();
+    void aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions);
 
 private:
     double _compute_solution_cost(size_t truck_idx, const std::vector<size_t>& stations) const;
@@ -44,6 +45,9 @@ private:
                        const std::set<size_t>& ignored_stations,
                        const std::vector<int>& station_start,
                        std::vector<int>& new_station_start) const;
+
+    double _get_schedule_solutions( const std::vector<std::vector<size_t> >& schedule,
+                                    std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const;
 
     std::vector<std::vector<double>> _create_value_matrix(const std::vector<std::vector<double> > &pheromone_matrix) const;
     size_t _develop(const std::vector<std::vector<double>>& value_matrix, const std::vector<size_t> &visited,

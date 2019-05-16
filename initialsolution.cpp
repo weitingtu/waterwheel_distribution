@@ -524,24 +524,28 @@ void InitialSolution::_change_start(const std::set<size_t>& ignored_stations,
     }
 }
 
+double InitialSolution::_get_schedule_solutions(
+        const std::vector<std::vector<size_t> >& schedule,
+        std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const
+{
+    schedule_solutions.clear();
+    double cost = 0.0;
+    for(size_t i = 0; i < _m.get_schedule_size(); ++i)
+    {
+        double solution_cost = std::numeric_limits<double>::max();
+        schedule_solutions.push_back( _group_station(schedule.at(i), solution_cost) );
+        cost += solution_cost;
+    }
+    return cost;
+}
+
 void InitialSolution::init()
 {
     srand(0);
     _compute_distance_cost_matrix();
 }
 
-//double InitialSolution::
-//        std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
-//        std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
-//        double cost = 0.0;
-//        for(size_t i = 0; i < _m.get_schedule_size(); ++i)
-//        {
-//            double solution_cost = std::numeric_limits<double>::max();
-//            schedule_solutions.push_back( _group_station(schedule.at(i), solution_cost) );
-//            cost += solution_cost;
-//        }
-
-void InitialSolution::generate()
+std::vector<std::vector<std::vector<size_t> > > InitialSolution::generate()
 {
     double min_cost = std::numeric_limits<double>::max();
     std::vector<int> min_station_start;
@@ -561,13 +565,7 @@ void InitialSolution::generate()
         std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
 
         std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
-        double cost = 0.0;
-        for(size_t i = 0; i < _m.get_schedule_size(); ++i)
-        {
-            double solution_cost = std::numeric_limits<double>::max();
-            schedule_solutions.push_back( _group_station(schedule.at(i), solution_cost) );
-            cost += solution_cost;
-        }
+        double cost = _get_schedule_solutions( schedule, schedule_solutions);
 
         printf("cost = %f\n", cost);
         if(cost <min_cost)
@@ -595,11 +593,16 @@ void InitialSolution::generate()
     {
         printf("Finish iteration due to reach max count %zu\n", max_count);
     }
+
+    std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
+    std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
+    _get_schedule_solutions( schedule, schedule_solutions);
+
+    return schedule_solutions;
 }
 
 std::vector<std::vector<double>> InitialSolution::_create_value_matrix(
-        const std::vector<std::vector<double>>& pheromone_matrix
-        ) const
+        const std::vector<std::vector<double>>& pheromone_matrix ) const
 {
     std::vector<std::vector<double>> value_matrix;
     size_t size = _m.get_station_size();
@@ -619,7 +622,6 @@ std::vector<std::vector<double>> InitialSolution::_create_value_matrix(
             {
                 value_matrix[i][j] = 0.0;
             }
-
         }
     }
 
@@ -719,14 +721,14 @@ bool InitialSolution::_is_develop() const
 {
     double rf = rand() / (RAND_MAX + 1.0);
 
-    if(rf < q0)
-    {
-        printf("rf %f < q0 %f, select develop\n", rf, q0);
-    }
-    else
-    {
-        printf("rf %f >= q0 %f, select explore\n", rf, q0);
-    }
+//    if(rf < q0)
+//    {
+//        printf("rf %f < q0 %f, select develop\n", rf, q0);
+//    }
+//    else
+//    {
+//        printf("rf %f >= q0 %f, select explore\n", rf, q0);
+//    }
     return rf < q0;
 }
 
@@ -780,36 +782,59 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
     double L = _get_L(stations);
     size_t N = stations.size() + 1;
     double tau0 = 1 / (L * N);
-//    printf("L = %f, N = %d, tau0 = %.10f\n", L, N, tau0);
 
     std::vector<std::vector<double>> pheromone_matrix = std::vector<std::vector<double>>(_m.get_station_size(), std::vector<double>(_m.get_station_size(), tau0));
-    std::vector<std::vector<double>> value_matrix = _create_value_matrix( pheromone_matrix);
-    std::vector<size_t> visited(stations.size(), true);
-    for(size_t i = 0; i < stations.size(); ++i)
-    {
-        visited[stations[i]] = false;
-    }
-    visited[0] = true;
-
     std::vector<size_t> path;
-
-    size_t source_idx = 0;
-    while(path.size() < stations.size())
+    size_t ant_count = 0;
+    while(ant_count < ant_num)
     {
-        size_t target_idx = _is_develop() ? _develop(value_matrix, visited, source_idx, stations)
-                                        : _explore(value_matrix, visited, source_idx, stations);
-        visited[target_idx] = true;
-        path.push_back(target_idx);
-        _local_update_pheromone(stations, L, source_idx, target_idx, pheromone_matrix[source_idx]);
-        source_idx = target_idx;
+        ++ant_count;
+        path.clear();
+        std::vector<std::vector<double>> value_matrix = _create_value_matrix(pheromone_matrix);
+        std::vector<size_t> visited(_m.get_station_size(), true);
+        for(size_t i = 0; i < stations.size(); ++i)
+        {
+            visited[stations[i]] = false;
+        }
+        visited[0] = true;
+
+        size_t source_idx = 0;
+        while(path.size() < stations.size())
+        {
+            size_t target_idx = _is_develop() ? _develop(value_matrix, visited, source_idx, stations)
+                                            : _explore(value_matrix, visited, source_idx, stations);
+            visited[target_idx] = true;
+            path.push_back(target_idx);
+            _local_update_pheromone(stations, L, source_idx, target_idx, pheromone_matrix[source_idx]);
+            source_idx = target_idx;
+        }
+        break;
     }
 
     return path;
 }
 
-void InitialSolution::aco()
+void InitialSolution::test_aco()
 {
-//        std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
     std::vector<size_t> stations = {2, 38, 37, 34, 35};
    _aco( stations );
+}
+
+void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions)
+{
+    std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
+    schedule_pathes.resize(schedule_solutions.size());
+
+    for(size_t i = 0; i < schedule_solutions.size(); ++i)
+    {
+        for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
+        {
+            if(schedule_solutions[i][j].empty())
+            {
+                continue;
+            }
+            std::vector<size_t> path = _aco( schedule_solutions[i][j]);
+            schedule_pathes[i].push_back(path);
+        }
+    }
 }
