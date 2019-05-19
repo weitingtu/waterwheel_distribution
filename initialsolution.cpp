@@ -273,50 +273,6 @@ bool InitialSolution::_get_min_distance_within_load(size_t source_idx, double lo
     return min_idx != std::numeric_limits<size_t>::max();
 }
 
-bool InitialSolution::_get_min_3_distance_with_min_supply(size_t source_idx, const std::vector<bool>& visited,
-                                                          size_t& min_idx) const
-{
-    // find min supply station within 3 min nearby stations
-    min_idx = std::numeric_limits<size_t>::max();
-    double min_supply   = std::numeric_limits<int>::max();
-    int min_distance = std::numeric_limits<int>::max();
-    size_t count = 0;
-    const std::vector<WaterStationDistance>& min_distances = _m.get_min_distances(source_idx);
-
-    for(size_t i = 0; i < min_distances.size(); ++i)
-    {
-        const WaterStationDistance& d = min_distances.at(i);
-        if(d.idx == source_idx)
-        {
-            continue;
-        }
-        if(visited.at(d.idx))
-        {
-            continue;
-        }
-        ++count;
-        const WaterStation& water_station = _m.get_station(d.idx);
-
-        if(min_supply > water_station.supply)
-        {
-            min_idx      = d.idx;
-            min_supply   = water_station.supply;
-            min_distance = d.distance;
-        }
-        else if(min_supply == water_station.supply && min_distance > d.distance)
-        {
-            min_idx      = d.idx;
-            min_supply   = water_station.supply;
-            min_distance = d.distance;
-        }
-        if(count == 3)
-        {
-            break;
-        }
-    }
-    return min_idx != std::numeric_limits<size_t>::max();
-}
-
 double InitialSolution::_group_station(const std::vector<size_t>& stations,
                                   const std::vector<size_t>& trucks,
                                   std::vector<std::vector<size_t> >& truck_stations) const
@@ -815,12 +771,6 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
     }
 
     return path;
-}
-
-void InitialSolution::test_aco()
-{
-    std::vector<size_t> stations = {2, 38, 37, 34, 35};
-   _aco( stations );
 }
 
 void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions)

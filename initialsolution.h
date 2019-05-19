@@ -14,7 +14,6 @@ public:
     InitialSolution(const TruckManager& t, const WaterStationManager& m);
     void init();
     std::vector<std::vector<std::vector<size_t> > > tabu();
-    void test_aco();
     void aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions);
 
 private:
@@ -26,7 +25,6 @@ private:
                          std::vector<std::vector<size_t> >& truck_stations ) const;
     bool _get_max_distance(size_t source_idx, const std::vector<bool>& visited, size_t &max_idx) const;
     bool _get_min_distance_within_load(size_t source_idx, double load, const std::vector<bool>& visited, size_t& min_idx) const;
-    bool _get_min_3_distance_with_min_supply(size_t source_idx, const std::vector<bool>& visited , size_t &min_idx) const;
     bool _is_all_stations_visited(const std::vector<size_t>& stations, const std::vector<std::vector<size_t> >& truck_stations ) const;
     double _group_station(const std::vector<size_t>& stations, const std::vector<size_t>& trucks,
                      std::vector<std::vector<size_t> > &truck_stations) const;
