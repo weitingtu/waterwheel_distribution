@@ -40,7 +40,7 @@ void MainWindow::_open()
 
     InitialSolution init(TruckManager::get_inst(), WaterStationManager::get_inst());
     init.init();
-    std::vector<std::vector<std::vector<size_t> > > schedule_solutions = init.generate();
+    std::vector<std::vector<std::vector<size_t> > > schedule_solutions = init.tabu();
     (void) schedule_solutions;
 //    init.aco(schedule_solutions);
 }

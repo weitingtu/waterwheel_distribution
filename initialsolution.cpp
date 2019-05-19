@@ -3,6 +3,7 @@
 #include "truckmanager.h"
 #include <tgmath.h>
 
+static const size_t g_max_group_iteration = 20;
 static const double g_diesel_price = 26.3;
 static const double g_water_price  = 17;
 static const double g_M            = 1000;
@@ -10,7 +11,7 @@ static const double g_M            = 1000;
 static const int minutes_per_station = 5;
 static const int minutes_per_ton     = 3;
 
-static const int ant_num = 100;
+static const int totoal_ant_num = 100;
 static const int alpha = 1;
 static const int beta  = 2;
 static const int Q     = 100;
@@ -160,7 +161,7 @@ std::vector<size_t> InitialSolution::_get_nearby_solution(const std::vector<size
     return solution;
 }
 
-bool InitialSolution::_is_all_solution_visited(const std::vector<size_t>& stations,
+bool InitialSolution::_is_all_stations_visited(const std::vector<size_t>& stations,
                                       const std::vector<std::vector<size_t> >& truck_stations ) const
 {
     size_t s = 0;
@@ -367,7 +368,7 @@ double InitialSolution::_group_station(const std::vector<size_t>& stations,
         }
     }
 
-    if(!_is_all_solution_visited( stations, truck_stations ))
+    if(!_is_all_stations_visited( stations, truck_stations ))
     {
         _add_missing_stations( visited, truck_stations );
     }
@@ -397,8 +398,6 @@ std::vector<std::vector<size_t> > InitialSolution::_group_station(const std::vec
             min_cost = cost;
             min_truck_stations = truck_stations;
         }
-        break;
-
     } while(std::next_permutation(trucks.begin(), trucks.end()));
 
     return min_truck_stations;
@@ -418,18 +417,24 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
         load += water_station.supply;
     }
 
+    std::set<size_t> removed_set;
     while(truck.load < load)
     {
         double r01 = (double)(rand()) / (RAND_MAX + 1);
         double rnd = r01 * (stations.size());
         size_t selected_idx = (size_t) rnd;
         size_t station_idx = stations.at(selected_idx);
+        if(removed_set.find(station_idx) != removed_set.end())
+        {
+            continue;
+        }
 //        printf("truck load %f < %f, remove station %zu\n", truck.load, load, station_idx);
 
         const WaterStation& water_station = _m.get_station(station_idx);
         load -= water_station.supply;
 
         removed_stations.push_back(station_idx);
+        removed_set.insert(station_idx);
     }
 }
 
@@ -545,7 +550,7 @@ void InitialSolution::init()
     _compute_distance_cost_matrix();
 }
 
-std::vector<std::vector<std::vector<size_t> > > InitialSolution::generate()
+std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
 {
     double min_cost = std::numeric_limits<double>::max();
     std::vector<int> min_station_start;
@@ -553,9 +558,8 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::generate()
     std::set<std::vector<int>> tabu;
 
     std::vector<int> station_start = _m.get_station_start();
-    const size_t max_count = 20;
     size_t count = 0;
-    while(count < max_count)
+    while(count < g_max_group_iteration )
     {
         printf("Run iteration %zu ", count);
         ++count;
@@ -568,7 +572,7 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::generate()
         double cost = _get_schedule_solutions( schedule, schedule_solutions);
 
         printf("cost = %f\n", cost);
-        if(cost <min_cost)
+        if(cost < min_cost)
         {
             printf("Update min cost from %f to %f\n", min_cost, cost);
             min_cost = cost;
@@ -589,9 +593,9 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::generate()
         }
         station_start = updated_station_start;
     }
-    if(max_count == count)
+    if(g_max_group_iteration == count)
     {
-        printf("Finish iteration due to reach max count %zu\n", max_count);
+        printf("Finish iteration due to reach max count %zu\n", g_max_group_iteration);
     }
 
     std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
@@ -786,7 +790,7 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
     std::vector<std::vector<double>> pheromone_matrix = std::vector<std::vector<double>>(_m.get_station_size(), std::vector<double>(_m.get_station_size(), tau0));
     std::vector<size_t> path;
     size_t ant_count = 0;
-    while(ant_count < ant_num)
+    while(ant_count < totoal_ant_num)
     {
         ++ant_count;
         path.clear();
@@ -808,7 +812,6 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
             _local_update_pheromone(stations, L, source_idx, target_idx, pheromone_matrix[source_idx]);
             source_idx = target_idx;
         }
-        break;
     }
 
     return path;
