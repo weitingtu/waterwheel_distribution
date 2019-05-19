@@ -589,7 +589,7 @@ std::vector<std::vector<double>> InitialSolution::_create_value_matrix(
 }
 
 size_t InitialSolution::_develop( const std::vector<std::vector<double>>& value_matrix,
-                                  const std::vector<size_t>& visited,
+                                  const std::vector<bool>& visited,
                                   size_t source_idx,
                                   const std::vector<size_t>& stations) const
 {
@@ -624,7 +624,7 @@ size_t InitialSolution::_develop( const std::vector<std::vector<double>>& value_
 }
 
 size_t InitialSolution::_explore( const std::vector<std::vector<double>>& value_matrix,
-                                  const std::vector<size_t>& visited,
+                                  const std::vector<bool>& visited,
                                   size_t source_idx,
                                   const std::vector<size_t>& stations) const
 {
@@ -732,6 +732,59 @@ void InitialSolution::_local_update_pheromone( const std::vector<size_t>& statio
     }
 }
 
+size_t InitialSolution::_get_max_pheromone_idx(const std::vector<std::vector<double>>& pheromone_matrix,
+                                            const std::vector<size_t>& stations,
+                                            const std::vector<bool>& visited,
+                                            size_t source_idx) const
+{
+    double max = std::numeric_limits<double>::lowest();
+    size_t max_idx = std::numeric_limits<size_t>::max();
+
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        size_t target_idx = stations[i];
+        if(target_idx == source_idx)
+        {
+            continue;
+        }
+        if(visited.at(target_idx))
+        {
+            continue;
+        }
+        if(pheromone_matrix.at(source_idx).at(target_idx) > max)
+        {
+            max = pheromone_matrix.at(source_idx).at(target_idx);
+            max_idx = target_idx;
+        }
+    }
+
+    return max_idx;
+}
+
+std::vector<size_t> InitialSolution::_max_pheromone(const std::vector<std::vector<double>>& pheromone_matrix,
+                                                    const std::vector<size_t>& stations) const
+{
+    std::vector<size_t> path;
+
+    std::vector<bool> visited(_m.get_station_size(), true);
+    for(size_t i = 0; i < stations.size(); ++i)
+    {
+        visited[stations[i]] = false;
+    }
+    visited[0] = true;
+
+    size_t source_idx = 0;
+    while(path.size() < stations.size())
+    {
+        size_t target_idx = _get_max_pheromone_idx(pheromone_matrix, stations, visited, source_idx);
+        visited.at(target_idx) = true;
+        path.push_back(target_idx);
+        source_idx = target_idx;
+    }
+
+    return path;
+}
+
 std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) const
 {
     if(stations.empty())
@@ -744,14 +797,13 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
     double tau0 = 1 / (L * N);
 
     std::vector<std::vector<double>> pheromone_matrix = std::vector<std::vector<double>>(_m.get_station_size(), std::vector<double>(_m.get_station_size(), tau0));
-    std::vector<size_t> path;
     size_t ant_count = 0;
     while(ant_count < totoal_ant_num)
     {
         ++ant_count;
-        path.clear();
+        std::vector<size_t> path;
         std::vector<std::vector<double>> value_matrix = _create_value_matrix(pheromone_matrix);
-        std::vector<size_t> visited(_m.get_station_size(), true);
+        std::vector<bool> visited(_m.get_station_size(), true);
         for(size_t i = 0; i < stations.size(); ++i)
         {
             visited[stations[i]] = false;
@@ -769,6 +821,8 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
             source_idx = target_idx;
         }
     }
+
+    std::vector<size_t> path = _max_pheromone( pheromone_matrix, stations);
 
     return path;
 }
