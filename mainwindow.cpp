@@ -42,5 +42,5 @@ void MainWindow::_open()
     init.init();
     std::vector<std::vector<std::vector<size_t> > > schedule_solutions = init.tabu();
     (void) schedule_solutions;
-//    init.aco(schedule_solutions);
+    init.aco(schedule_solutions);
 }

@@ -844,4 +844,16 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
             schedule_pathes[i].push_back(path);
         }
     }
+
+    double total_cost = 0.0;
+    for(size_t i = 0; i < schedule_solutions.size(); ++i)
+    {
+        for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
+        {
+            double cost = _compute_solution_cost(j, schedule_solutions[i][j]);
+            printf("day %zu truck %zu cost %f\n", i, j, cost);
+            total_cost += cost;
+        }
+    }
+    printf("total cost = %f\n", total_cost);
 }
