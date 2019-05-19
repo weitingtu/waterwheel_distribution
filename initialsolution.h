@@ -65,6 +65,8 @@ private:
                                             size_t source_idx) const;
     std::vector<size_t> _max_pheromone(const std::vector<std::vector<double>>& pheromone_matrix,
                                                     const std::vector<size_t>& stations) const;
+    void _local_search(size_t day_idx, size_t truck_idx, std::vector<size_t>& stations) const;
+    void _local_search( std::vector<std::vector<std::vector<size_t> > >& schedule_pathes);
 
     const TruckManager& _t;
     const WaterStationManager& _m;

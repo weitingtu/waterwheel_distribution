@@ -827,11 +827,52 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
     return path;
 }
 
+void InitialSolution::_local_search(size_t day_idx, size_t truck_idx, std::vector<size_t>& stations) const
+{
+    if(stations.size() < 2)
+    {
+        return;
+    }
+
+    double cost = _compute_solution_cost(truck_idx, stations);
+
+    std::vector<size_t> shuffle(stations.size());
+    for(size_t i = 0; i < shuffle.size(); ++i)
+    {
+        shuffle[i] = 0;
+    }
+
+    std::random_shuffle(shuffle.begin(), shuffle.end());
+
+    std::vector<size_t> tmp_stations = stations;
+    std::swap(tmp_stations.at(shuffle.at(0)), tmp_stations.at(shuffle.at(1)));
+
+    double tmp_cost = _compute_solution_cost(truck_idx, stations);
+
+    if(tmp_cost < cost)
+    {
+        stations = tmp_stations;
+        printf("update local search day %zu truck %zu cost %f -> %f\n", day_idx, truck_idx, cost, tmp_cost);
+    }
+}
+
+void InitialSolution::_local_search( std::vector<std::vector<std::vector<size_t> > >& schedule_pathes)
+{
+    for(size_t i = 0; i < schedule_pathes.size(); ++i)
+    {
+        for(size_t j = 0; j < schedule_pathes[i].size(); ++j)
+        {
+            _local_search(i, j, schedule_pathes[i][j]);
+        }
+    }
+}
+
 void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions)
 {
     std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
     schedule_pathes.resize(schedule_solutions.size());
 
+    printf("start aco\n");
     for(size_t i = 0; i < schedule_solutions.size(); ++i)
     {
         for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
@@ -844,6 +885,9 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
             schedule_pathes[i].push_back(path);
         }
     }
+
+    printf("start local search\n");
+    _local_search( schedule_pathes );
 
     double total_cost = 0.0;
     for(size_t i = 0; i < schedule_solutions.size(); ++i)
