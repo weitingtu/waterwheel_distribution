@@ -18,7 +18,8 @@ static const int Q     = 100;
 static const double rho = 0.6;
 static const double rho_prime = 0.7;
 static const double q0 = 0.7;
-static const unsigned int random_seed = 0;
+static const unsigned int tabu_random_seed = 0;
+static const unsigned int aco_random_seed = 0;
 
 InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManager &m) :
     _t(t),
@@ -503,7 +504,7 @@ double InitialSolution::_get_schedule_solutions(
 
 void InitialSolution::init()
 {
-    srand(random_seed);
+    srand(tabu_random_seed);
     _compute_distance_cost_matrix();
 }
 
@@ -870,6 +871,8 @@ void InitialSolution::_local_search( std::vector<std::vector<std::vector<size_t>
 
 void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions)
 {
+    srand(aco_random_seed);
+
     std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
     schedule_pathes.resize(schedule_solutions.size());
 
