@@ -48,6 +48,8 @@ private:
     double _get_schedule_solutions( const std::vector<std::vector<size_t> >& schedule,
                                     std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const;
 
+    std::vector<int> _get_random_station_start() const;
+
     std::vector<std::vector<double>> _create_value_matrix(const std::vector<std::vector<double> > &pheromone_matrix) const;
     size_t _develop(const std::vector<std::vector<double>>& value_matrix, const std::vector<bool> &visited,
                      size_t source_idx,

@@ -504,8 +504,22 @@ double InitialSolution::_get_schedule_solutions(
 
 void InitialSolution::init()
 {
-    srand(tabu_random_seed);
     _compute_distance_cost_matrix();
+}
+
+std::vector<int> InitialSolution::_get_random_station_start() const
+{
+    std::vector<int> station_start;
+    station_start.reserve(_m.get_station_size());
+
+    for(size_t i = 0; i < _m.get_station_size(); ++i)
+    {
+        double r01 = (double)(rand()) / (RAND_MAX + 1);
+        double rnd = r01 * (_m.get_station_size());
+        station_start.push_back((size_t) rnd);
+    }
+
+    return station_start;
 }
 
 std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
@@ -515,7 +529,10 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
 
     std::set<std::vector<int>> tabu;
 
+//    std::vector<int> station_start = _get_random_station_start();
     std::vector<int> station_start = _m.get_station_start();
+
+    srand(tabu_random_seed);
     size_t count = 0;
     while(count < g_max_group_iteration )
     {
