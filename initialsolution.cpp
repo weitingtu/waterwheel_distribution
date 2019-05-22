@@ -905,3 +905,263 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
     }
     printf("total cost = %f\n", total_cost);
 }
+
+std::vector<std::vector<std::vector<size_t> > > InitialSolution::_create_real_schedule() const
+{
+    std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
+    schedule_solutions.resize(60);
+    schedule_solutions[0].push_back(std::vector<size_t>());
+    schedule_solutions[0].push_back({{ 34, 35, 37, 38, 2, 3, 1 }});
+    schedule_solutions[0].push_back({{ 85, 92 }});
+
+    schedule_solutions[1].push_back(std::vector<size_t>());
+    schedule_solutions[1].push_back({{ 11, 10, 79, 26 }});
+    schedule_solutions[1].push_back({{ 88, 105 }});
+
+    schedule_solutions[2].push_back(std::vector<size_t>());
+    schedule_solutions[2].push_back({{  }});
+    schedule_solutions[2].push_back({{ 89, 93, 91 }});
+
+    schedule_solutions[3].push_back(std::vector<size_t>());
+    schedule_solutions[3].push_back({{ 80, 22, 23, 20 }});
+    schedule_solutions[3].push_back({{ 94, 95, 96, 97 }});
+
+    schedule_solutions[4].push_back(std::vector<size_t>());
+    schedule_solutions[4].push_back({{ 49, 47, 49, 13, 64 }});
+    schedule_solutions[4].push_back({{ 99, 101, 82, 83, 84 }});
+
+    schedule_solutions[5].push_back(std::vector<size_t>());
+    schedule_solutions[5].push_back({{ 72, 15 }});
+    schedule_solutions[5].push_back({{ 110 }});
+
+    schedule_solutions[6].push_back(std::vector<size_t>());
+    schedule_solutions[6].push_back({{ 80, 71, 4, 5, 7, 8 }});
+    schedule_solutions[6].push_back({{  }});
+
+    schedule_solutions[7].push_back(std::vector<size_t>());
+    schedule_solutions[7].push_back({{ 11, 2, 3, 1, 21, 67 }});
+    schedule_solutions[7].push_back({{ 85, 86, 87, 82, 114 }});
+
+    schedule_solutions[8].push_back(std::vector<size_t>());
+    schedule_solutions[8].push_back({{ 66, 22, 12, 44 }});
+    schedule_solutions[8].push_back({{ 106, 103, 104, 100, 98 }});
+
+    schedule_solutions[9].push_back(std::vector<size_t>());
+    schedule_solutions[9].push_back({{  }});
+    schedule_solutions[9].push_back({{ 88, 105, 92, 82, 83 }});
+
+    schedule_solutions[10].push_back(std::vector<size_t>());
+    schedule_solutions[10].push_back({{ 53, 32, 52 }});
+    schedule_solutions[10].push_back({{ 107, 108, 109 }});
+
+    schedule_solutions[11].push_back(std::vector<size_t>());
+    schedule_solutions[11].push_back({{ 80, 30, 29, 6, 19 }});
+    schedule_solutions[11].push_back({{ 94, 95 }});
+
+    schedule_solutions[12].push_back(std::vector<size_t>());
+    schedule_solutions[12].push_back({{ 39, 23, 42, 24 }});
+    schedule_solutions[12].push_back({{ 99, 101 }});
+
+    schedule_solutions[13].push_back(std::vector<size_t>());
+    schedule_solutions[13].push_back({{ 4, 5 }});
+    schedule_solutions[13].push_back({{  }});
+
+    schedule_solutions[14].push_back(std::vector<size_t>());
+    schedule_solutions[14].push_back({{ 11, 10, 18, 33, 36, 21, 22 }});
+    schedule_solutions[14].push_back({{ 89, 85, 82, 114 }});
+
+    schedule_solutions[15].push_back(std::vector<size_t>());
+    schedule_solutions[15].push_back({{  }});
+    schedule_solutions[15].push_back({{  }});
+
+    schedule_solutions[16].push_back(std::vector<size_t>());
+    schedule_solutions[16].push_back({{  }});
+    schedule_solutions[16].push_back({{ 88, 105 }});
+
+    schedule_solutions[17].push_back(std::vector<size_t>());
+    schedule_solutions[17].push_back({{ 80, 20, 2, 3, 1 }});
+    schedule_solutions[17].push_back({{ 108, 91, 92, 93 }});
+
+    schedule_solutions[18].push_back(std::vector<size_t>());
+    schedule_solutions[18].push_back({{ 43, 65, 34, 35, 37, 38 }});
+    schedule_solutions[18].push_back({{ 82, 83, 110 }});
+
+    schedule_solutions[19].push_back(std::vector<size_t>());
+    schedule_solutions[19].push_back({{ 55, 56, 57, 50, 27, 15, 16, 13 }});
+    schedule_solutions[19].push_back({{ 99, 100, 101 }});
+
+    schedule_solutions[20].push_back(std::vector<size_t>());
+    schedule_solutions[20].push_back({{ 80, 22, 23, 4, 5 }});
+    schedule_solutions[20].push_back({{  }});
+
+    schedule_solutions[21].push_back(std::vector<size_t>());
+    schedule_solutions[21].push_back({{ 54, 45, 46, 7, 8, 12, 81 }});
+    schedule_solutions[21].push_back({{ 115, 114 }});
+
+    schedule_solutions[22].push_back(std::vector<size_t>());
+    schedule_solutions[22].push_back({{ 11, 26 }});
+    schedule_solutions[22].push_back({{ 113, 105, 85, 86, 82 }});
+
+    schedule_solutions[23].push_back(std::vector<size_t>());
+    schedule_solutions[23].push_back({{  }});
+    schedule_solutions[23].push_back({{ 110, 112, 90, 92 }});
+
+    schedule_solutions[24].push_back(std::vector<size_t>());
+    schedule_solutions[24].push_back({{ 2, 3, 1, 21 }});
+    schedule_solutions[24].push_back({{  88, 83, 94, 95, 96}});
+
+    schedule_solutions[25].push_back(std::vector<size_t>());
+    schedule_solutions[25].push_back({{ 30, 29, 6, 25, 28, 75, 77, 73, 74, 76 }});
+    schedule_solutions[25].push_back({{ 89, 82, 83, 102 }});
+
+    schedule_solutions[26].push_back(std::vector<size_t>());
+    schedule_solutions[26].push_back({{ 80, 31, 58, 62, 69 }});
+    schedule_solutions[26].push_back({{ 106, 103, 98 }});
+
+    schedule_solutions[27].push_back(std::vector<size_t>());
+    schedule_solutions[27].push_back({{ 78, 17, 22, 23, 4, 5 }});
+    schedule_solutions[27].push_back({{  }});
+
+    schedule_solutions[28].push_back(std::vector<size_t>());
+    schedule_solutions[28].push_back({{ 72, 24, 11, 10, 79 }});
+    schedule_solutions[28].push_back({{ 99, 100, 101, 114 }});
+
+    schedule_solutions[29].push_back(std::vector<size_t>());
+    schedule_solutions[29].push_back({{  }});
+    schedule_solutions[29].push_back({{ 107, 111, 110 }});
+
+    schedule_solutions[30].push_back(std::vector<size_t>());
+    schedule_solutions[30].push_back({{  }});
+    schedule_solutions[30].push_back({{ 85, 82, 105 }});
+
+    schedule_solutions[31].push_back(std::vector<size_t>());
+    schedule_solutions[31].push_back({{ 80, 7, 8, 59, 61, 9, 19 }});
+    schedule_solutions[31].push_back({{ 83, 84, 87 }});
+
+    schedule_solutions[32].push_back(std::vector<size_t>());
+    schedule_solutions[32].push_back({{ 20, 2, 3, 1 }});
+    schedule_solutions[32].push_back({{ 94, 95, 92, 115 }});
+
+    schedule_solutions[33].push_back(std::vector<size_t>());
+    schedule_solutions[33].push_back({{ 39, 40, 60, 18, 63, 21 }});
+    schedule_solutions[33].push_back({{ 88, 82, 83 }});
+
+    schedule_solutions[34].push_back(std::vector<size_t>());
+    schedule_solutions[34].push_back({{ 80, 68, 70, 4, 5 }});
+    schedule_solutions[34].push_back({{  }});
+
+    schedule_solutions[35].push_back(std::vector<size_t>());
+    schedule_solutions[35].push_back({{ 22, 23, 12, 44, 43, 42, 64 }});
+    schedule_solutions[35].push_back({{ 91, 85, 114 }});
+
+    schedule_solutions[36].push_back(std::vector<size_t>());
+    schedule_solutions[36].push_back({{ 11, 49, 47, 48, 13 }});
+    schedule_solutions[36].push_back({{ 99, 100, 101, 103, 89 }});
+
+    schedule_solutions[37].push_back(std::vector<size_t>());
+    schedule_solutions[37].push_back({{  }});
+    schedule_solutions[37].push_back({{ 86, 105 }});
+
+    schedule_solutions[38].push_back(std::vector<size_t>());
+    schedule_solutions[38].push_back({{ 34, 35, 37, 38, 15, 14 }});
+    schedule_solutions[38].push_back({{ 82, 83 }});
+
+    schedule_solutions[39].push_back(std::vector<size_t>());
+    schedule_solutions[39].push_back({{ 80, 30, 29, 6, 2, 3, 1 }});
+    schedule_solutions[39].push_back({{ 106, 104, 98 }});
+
+    schedule_solutions[40].push_back(std::vector<size_t>());
+    schedule_solutions[40].push_back({{ 53, 32, 52, 7, 8, 17 }});
+    schedule_solutions[40].push_back({{ 92, 94, 95 }});
+
+    schedule_solutions[41].push_back(std::vector<size_t>());
+    schedule_solutions[41].push_back({{ 4, 5, 36, 33, 21 }});
+    schedule_solutions[41].push_back({{  }});
+
+    schedule_solutions[42].push_back(std::vector<size_t>());
+    schedule_solutions[42].push_back({{ 26, 11, 10, 22, 23, 24 }});
+    schedule_solutions[42].push_back({{ 85, 88, 114 }});
+
+    schedule_solutions[43].push_back(std::vector<size_t>());
+    schedule_solutions[43].push_back({{ 56, 55, 50, 51, 57 }});
+    schedule_solutions[43].push_back({{ 110, 82, 83, 105 }});
+
+    schedule_solutions[44].push_back(std::vector<size_t>());
+    schedule_solutions[44].push_back({{  }});
+    schedule_solutions[44].push_back({{ 99, 100, 101 }});
+
+    schedule_solutions[45].push_back(std::vector<size_t>());
+    schedule_solutions[45].push_back({{ 80, 54, 45, 46, 21 }});
+    schedule_solutions[45].push_back({{ 107, 108 }});
+
+    schedule_solutions[46].push_back(std::vector<size_t>());
+    schedule_solutions[46].push_back({{ 65, 2, 3, 1, 43, 20 }});
+    schedule_solutions[46].push_back({{ 115, 113, 92, 93 }});
+
+    schedule_solutions[47].push_back(std::vector<size_t>());
+    schedule_solutions[47].push_back({{ 31, 58, 62, 18, 63 }});
+    schedule_solutions[47].push_back({{ 89, 93, 91 }});
+
+    schedule_solutions[48].push_back(std::vector<size_t>());
+    schedule_solutions[48].push_back({{ 4, 5, 27, 12, 81 }});
+    schedule_solutions[48].push_back({{  }});
+
+    schedule_solutions[49].push_back(std::vector<size_t>());
+    schedule_solutions[49].push_back({{ 7, 8, 17, 15, 16, 22, 23, 11 }});
+    schedule_solutions[49].push_back({{ 88, 82, 83, 94, 95, 97 }});
+
+    schedule_solutions[50].push_back(std::vector<size_t>());
+    schedule_solutions[50].push_back({{ 72 }});
+    schedule_solutions[50].push_back({{ 85, 86 }});
+
+    schedule_solutions[51].push_back(std::vector<size_t>());
+    schedule_solutions[51].push_back({{  }});
+    schedule_solutions[51].push_back({{ 105, 83 }});
+
+    schedule_solutions[52].push_back(std::vector<size_t>());
+    schedule_solutions[52].push_back({{ 39, 13 }});
+    schedule_solutions[52].push_back({{ 99, 100, 101 }});
+
+    schedule_solutions[53].push_back(std::vector<size_t>());
+    schedule_solutions[53].push_back({{ 80, 2, 3, 1, 41, 30, 29, 6, 25, 28 }});
+    schedule_solutions[53].push_back({{ 112, 111, 110 }});
+
+    schedule_solutions[54].push_back(std::vector<size_t>());
+    schedule_solutions[54].push_back({{ 71, 4, 5, 21 }});
+    schedule_solutions[54].push_back({{ 106, 103, 104, 98 }});
+
+    schedule_solutions[55].push_back(std::vector<size_t>());
+    schedule_solutions[55].push_back({{ 22, 23 }});
+    schedule_solutions[55].push_back({{  }});
+
+    schedule_solutions[56].push_back(std::vector<size_t>());
+    schedule_solutions[56].push_back({{ 80 }});
+    schedule_solutions[56].push_back({{ 114, 92, 89, 82 }});
+
+    schedule_solutions[57].push_back(std::vector<size_t>());
+    schedule_solutions[57].push_back({{  }});
+    schedule_solutions[57].push_back({{ 88, 85, 115 }});
+
+    schedule_solutions[58].push_back(std::vector<size_t>());
+    schedule_solutions[58].push_back({{  }});
+    schedule_solutions[58].push_back({{ 105, 82, 83 }});
+
+    schedule_solutions[59].push_back(std::vector<size_t>());
+    schedule_solutions[59].push_back({{ 34, 35, 37, 38, 7, 8 }});
+    schedule_solutions[59].push_back({{ 94, 95, 96 }});
+
+    return schedule_solutions;
+}
+
+void InitialSolution::compute_real_cost() const
+{
+    std::vector<std::vector<std::vector<size_t> > > schedule_solutions = _create_real_schedule();
+
+    double cost = 0.0;
+    for(size_t i = 0; i < schedule_solutions.size(); ++i)
+    {
+        cost += _compute_all_solution_cost(schedule_solutions[i]);
+    }
+
+    printf("real schedule cost is %f\n", cost);
+}
