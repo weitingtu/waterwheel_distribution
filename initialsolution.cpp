@@ -3,7 +3,7 @@
 #include "truckmanager.h"
 #include <tgmath.h>
 
-static const size_t g_max_group_iteration = 20;
+static const size_t g_max_group_iteration = 1;
 static const double g_diesel_price = 26.3;
 static const double g_water_price  = 17;
 static const double g_M            = 1000;
@@ -573,7 +573,7 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
         printf("Finish iteration due to reach max count %zu\n", g_max_group_iteration);
     }
 
-    std::vector<std::vector<size_t> > schedule = _m.get_schedule(station_start);
+    std::vector<std::vector<size_t> > schedule = _m.get_schedule(min_station_start);
     std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
     _get_schedule_solutions( schedule, schedule_solutions);
 
@@ -1182,3 +1182,73 @@ void InitialSolution::compute_real_cost() const
 
     printf("real schedule cost is %f\n", cost);
 }
+
+std::vector<size_t> InitialSolution::_tsp(size_t truck_idx, const std::vector<size_t>& stations,
+                                                                  double& min_cost) const
+{
+    std::vector<size_t> schedule = stations;
+    std::vector<size_t> min_schedule;
+    min_cost = std::numeric_limits<double>::max();
+    do
+    {
+        double cost = _compute_solution_cost( truck_idx, schedule);
+        if(min_cost > cost)
+        {
+            min_cost = cost;
+            min_schedule = schedule;
+        }
+    } while(std::next_permutation(schedule.begin(), schedule.end()));
+
+    return min_schedule;
+}
+
+void InitialSolution::tsp( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const
+{
+    std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
+    schedule_pathes.resize(schedule_solutions.size());
+
+    printf("start tsp\n");
+    double all_cost = 0.0;
+    for(size_t i = 0; i < schedule_solutions.size(); ++i)
+    {
+        for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
+        {
+            if(schedule_solutions[i][j].empty())
+            {
+                continue;
+            }
+            double cost = 0.0;
+            std::vector<size_t> path = _tsp( j, schedule_solutions[i][j], cost);
+            schedule_pathes[i].push_back(path);
+            all_cost += cost;
+        }
+    }
+
+    printf("tsp cost = %f\n", all_cost);
+}
+
+void InitialSolution::near_by( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const
+{
+    std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
+    schedule_pathes.resize(schedule_solutions.size());
+
+    printf("start near by\n");
+    double all_cost = 0.0;
+    for(size_t i = 0; i < schedule_solutions.size(); ++i)
+    {
+        for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
+        {
+            if(schedule_solutions[i][j].empty())
+            {
+                continue;
+            }
+            std::vector<size_t> path = _get_nearby_solution(schedule_solutions[i][j]);
+            schedule_pathes[i].push_back(path);
+            double cost = _compute_solution_cost(j, path);
+            all_cost += cost;
+        }
+    }
+
+    printf("near by cost = %f\n", all_cost);
+}
+

@@ -15,6 +15,8 @@ public:
     void init();
     std::vector<std::vector<std::vector<size_t> > > tabu();
     void aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions);
+    void tsp( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const;
+    void near_by( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const;
     void compute_real_cost() const;
 
 private:
@@ -72,6 +74,9 @@ private:
     void _local_search( std::vector<std::vector<std::vector<size_t> > >& schedule_pathes);
 
     std::vector<std::vector<std::vector<size_t> > > _create_real_schedule() const;
+
+    std::vector<size_t> _tsp(size_t truck_idx, const std::vector<size_t>& stations,
+                                                                  double& min_cost) const;
 
     const TruckManager& _t;
     const WaterStationManager& _m;

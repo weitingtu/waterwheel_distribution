@@ -44,4 +44,6 @@ void MainWindow::_open()
     std::vector<std::vector<std::vector<size_t> > > schedule_solutions = init.tabu();
     (void) schedule_solutions;
     init.aco(schedule_solutions);
+    init.tsp(schedule_solutions);
+    init.near_by(schedule_solutions);
 }
