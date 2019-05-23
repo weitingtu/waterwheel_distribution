@@ -20,6 +20,7 @@ static const double rho_prime = 0.7;
 static const double q0 = 0.7;
 static const unsigned int tabu_random_seed = 0;
 static const unsigned int aco_random_seed = 0;
+static const unsigned int start_random_seed = 0;
 
 InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManager &m) :
     _t(t),
@@ -509,13 +510,14 @@ void InitialSolution::init()
 
 std::vector<int> InitialSolution::_get_random_station_start() const
 {
+    srand(start_random_seed);
     std::vector<int> station_start;
     station_start.reserve(_m.get_station_size());
 
     for(size_t i = 0; i < _m.get_station_size(); ++i)
     {
         double r01 = (double)(rand()) / (RAND_MAX + 1);
-        double rnd = r01 * (_m.get_station_size());
+        double rnd = r01 * (_m.get_schedule_size());
         station_start.push_back((size_t) rnd);
     }
 
