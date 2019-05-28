@@ -53,6 +53,7 @@ private:
 
     std::vector<int> _get_random_station_start() const;
 
+    std::vector<std::vector<double>> _create_pheromone_matrix() const;
     std::vector<std::vector<double>> _create_value_matrix(const std::vector<std::vector<double> > &pheromone_matrix) const;
     size_t _develop(const std::vector<std::vector<double>>& value_matrix, const std::vector<bool> &visited,
                      size_t source_idx,
@@ -61,9 +62,9 @@ private:
                      size_t source_idx,
                      const std::vector<size_t>& stations) const;
     bool _is_develop() const;
-    void _local_update_pheromone(const std::vector<size_t> &stations, double L, size_t source_idx, size_t target_idx, std::vector<double>& pheromone) const;
+    void _local_update_pheromone(const std::vector<size_t> &stations, int q, double Lgb, double Pbest, size_t N, size_t source_idx, size_t target_idx, std::vector<double>& pheromone) const;
     double _get_L(const std::vector<size_t>& stations) const;
-    std::vector<size_t> _aco( const std::vector<size_t>& stations) const;
+    std::vector<size_t> _aco(size_t truck_idx, const std::vector<size_t>& stations) const;
 
     size_t _get_max_pheromone_idx(const std::vector<std::vector<double>>& pheromone_matrix,
                                             const std::vector<size_t>& stations,
@@ -71,8 +72,9 @@ private:
                                             size_t source_idx) const;
     std::vector<size_t> _max_pheromone(const std::vector<std::vector<double>>& pheromone_matrix,
                                                     const std::vector<size_t>& stations) const;
-    void _local_search(size_t day_idx, size_t truck_idx, std::vector<size_t>& stations) const;
-    void _local_search( std::vector<std::vector<std::vector<size_t> > >& schedule_pathes);
+    void _disturb_pheromone(const std::vector<size_t>& stations,
+                                         std::vector<std::vector<double>>& pheromone_matrix) const;
+    bool _local_search(size_t truck_idx, std::vector<size_t>& stations) const;
 
     std::vector<std::vector<std::vector<size_t> > > _create_real_schedule() const;
 

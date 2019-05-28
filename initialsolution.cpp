@@ -12,7 +12,8 @@ static const double g_M            = 1000;
 static const int minutes_per_station = 5;
 static const int minutes_per_ton     = 3;
 
-static const int totoal_ant_num = 100;
+static const int totoal_ant_iteration = 5;
+static const int totoal_ant_num = 5;
 static const int alpha = 1;
 static const int beta  = 2;
 static const int Q     = 100;
@@ -22,8 +23,9 @@ static const double q0 = 0.7;
 static const unsigned int tabu_random_seed = 0;
 static const unsigned int aco_random_seed = 0;
 static const unsigned int start_random_seed = 0;
+static const int QQ = 1;
 
-static const bool dump_to_file = true;
+static const bool dump_to_file = false;
 
 static FILE* _fp = nullptr;
 
@@ -636,6 +638,24 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
     return schedule_solutions;
 }
 
+std::vector<std::vector<double>> InitialSolution::_create_pheromone_matrix() const
+{
+    std::vector<std::vector<double>> pheromone_matrix;
+    size_t size = _m.get_station_size();
+
+    pheromone_matrix.resize(size);
+    for(size_t i = 0; i < size; ++i)
+    {
+        pheromone_matrix[i].resize(size);
+        for(size_t j = 0; j < size; ++j)
+        {
+            pheromone_matrix[i][j] = std::max(0.0, _m.get_expected_value(i, j));
+        }
+    }
+
+    return pheromone_matrix;
+}
+
 std::vector<std::vector<double>> InitialSolution::_create_value_matrix(
         const std::vector<std::vector<double>>& pheromone_matrix ) const
 {
@@ -783,10 +803,21 @@ double InitialSolution::_get_L(const std::vector<size_t>& stations) const
 }
 
 void InitialSolution::_local_update_pheromone( const std::vector<size_t>& stations,
-                                         double L,
-                                         size_t source_idx, size_t target_idx,
-                                         std::vector<double>& pheromone) const
+                                               int q,
+                                               double Lgb,
+                                               double Pbest,
+                                               size_t N,
+                                               size_t source_idx, size_t target_idx,
+                                               std::vector<double>& pheromone) const
 {
+    double tau_max = 1 / (rho * Lgb);
+    double p = std::pow(Pbest, 1 / (double)N);
+    double avg = (double)N / 2;
+    if(N <= 2)
+    {
+        avg = 2;
+    }
+    double tau_min = tau_max * p / ((avg - 1) * p);
 
     for(size_t i = 0; i <stations.size(); ++i)
     {
@@ -797,13 +828,15 @@ void InitialSolution::_local_update_pheromone( const std::vector<size_t>& statio
         }
         if(target_idx == idx)
         {
-            pheromone[idx] = pheromone[idx] * (1 - rho) + rho * (1 / L);
+            pheromone[idx] = pheromone[idx] * (1 - rho) + rho * (q / Lgb);
         }
         else
         {
             pheromone[idx] = pheromone[idx] * (1 - rho);
-
         }
+
+        pheromone[idx] = std::min(tau_max, pheromone[idx]);
+        pheromone[idx] = std::max(tau_min, pheromone[idx]);
     }
 }
 
@@ -860,40 +893,119 @@ std::vector<size_t> InitialSolution::_max_pheromone(const std::vector<std::vecto
     return path;
 }
 
-std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) const
+void InitialSolution::_disturb_pheromone(const std::vector<size_t>& stations,
+                                         std::vector<std::vector<double>>& pheromone_matrix) const
+{
+    for(size_t i = 0; i <stations.size(); ++i)
+    {
+        size_t source_idx = stations[i];
+        for(size_t j = 0; j <stations.size(); ++j)
+        {
+            size_t target_idx = stations[j];
+            if(source_idx == target_idx)
+            {
+                continue;
+            }
+            double r01 = (double)(rand()) / (RAND_MAX + 1);
+            if(r01 > 0.5)
+            {
+                continue;
+            }
+            double r02 = (double)(rand()) / (RAND_MAX + 1);
+            pheromone_matrix[source_idx][target_idx] *= r02;
+        }
+    }
+}
+
+std::vector<size_t> InitialSolution::_aco( size_t truck_idx, const std::vector<size_t>& stations) const
 {
     if(stations.empty())
     {
         _log("error, empty stations\n");
         return std::vector<size_t>();
     }
-    double L = _get_L(stations);
+//    double L = _get_L(stations);
     size_t N = stations.size() + 1;
-    double tau0 = 1 / (L * N);
+    (void) N;
+//    double tau0 = 1 / (L * N);
 
-    std::vector<std::vector<double>> pheromone_matrix = std::vector<std::vector<double>>(_m.get_station_size(), std::vector<double>(_m.get_station_size(), tau0));
-    size_t ant_count = 0;
-    while(ant_count < totoal_ant_num)
+//    std::vector<std::vector<double>> pheromone_matrix = std::vector<std::vector<double>>(_m.get_station_size(), std::vector<double>(_m.get_station_size(), tau0));
+    std::vector<std::vector<double>> pheromone_matrix = _create_pheromone_matrix();
+    size_t ant_iteration = 0;
+    size_t non_improve_iteration = 0;
+    double iteration_min_cost = std::numeric_limits<double>::max();
+    std::vector<size_t> iteration_min_path;
+    while(ant_iteration < totoal_ant_iteration)
     {
-        ++ant_count;
-        std::vector<size_t> path;
-        std::vector<std::vector<double>> value_matrix = _create_value_matrix(pheromone_matrix);
-        std::vector<bool> visited(_m.get_station_size(), true);
-        for(size_t i = 0; i < stations.size(); ++i)
+        ++ant_iteration;
+        size_t ant_count = 0;
+        double count_min_cost = std::numeric_limits<double>::max();
+        std::vector<size_t> count_min_path;
+        while(ant_count < totoal_ant_num)
         {
-            visited[stations[i]] = false;
-        }
-        visited[0] = true;
+            ++ant_count;
+            std::vector<size_t> path;
+            std::vector<std::vector<double>> value_matrix = _create_value_matrix(pheromone_matrix);
+            std::vector<bool> visited(_m.get_station_size(), true);
+            for(size_t i = 0; i < stations.size(); ++i)
+            {
+                visited[stations[i]] = false;
+            }
+            visited[0] = true;
 
-        size_t source_idx = 0;
-        while(path.size() < stations.size())
+            size_t source_idx = 0;
+            while(path.size() < stations.size())
+            {
+                size_t target_idx = _is_develop() ? _develop(value_matrix, visited, source_idx, stations)
+                                                : _explore(value_matrix, visited, source_idx, stations);
+                visited[target_idx] = true;
+                path.push_back(target_idx);
+                source_idx = target_idx;
+            }
+
+           double cost = _compute_solution_cost(truck_idx, path);
+           if(cost < count_min_cost)
+           {
+               count_min_cost = cost;
+               count_min_path = path;
+           }
+        }
+
+        bool improved = false;
+        if(count_min_cost < iteration_min_cost)
         {
-            size_t target_idx = _is_develop() ? _develop(value_matrix, visited, source_idx, stations)
-                                            : _explore(value_matrix, visited, source_idx, stations);
-            visited[target_idx] = true;
-            path.push_back(target_idx);
-            _local_update_pheromone(stations, L, source_idx, target_idx, pheromone_matrix[source_idx]);
-            source_idx = target_idx;
+            iteration_min_cost = count_min_cost;
+            iteration_min_path = count_min_path;
+            improved = true;
+        }
+
+        improved |= _local_search( truck_idx, iteration_min_path);
+
+        if(!improved)
+        {
+            ++non_improve_iteration;
+        }
+
+        if(non_improve_iteration > 0.15 * totoal_ant_iteration)
+        {
+            non_improve_iteration = 0;
+            _disturb_pheromone( stations, pheromone_matrix);
+        }
+        else
+        {
+            double Lgb   = _get_L(iteration_min_path);
+            double Pbest = _get_L(count_min_path);
+            size_t source_idx = 0;
+            for(size_t i = 0; i < iteration_min_path.size(); ++i)
+            {
+                size_t target_idx = iteration_min_path[i];
+                _local_update_pheromone(stations, QQ,
+                                        Lgb,
+                                        Pbest,
+                                        N,
+                                        source_idx, target_idx, pheromone_matrix[source_idx]);
+                source_idx = target_idx;
+            }
         }
     }
 
@@ -902,11 +1014,11 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
     return path;
 }
 
-void InitialSolution::_local_search(size_t day_idx, size_t truck_idx, std::vector<size_t>& stations) const
+bool InitialSolution::_local_search(size_t truck_idx, std::vector<size_t>& stations) const
 {
     if(stations.size() < 2)
     {
-        return;
+        return false;
     }
 
     double cost = _compute_solution_cost(truck_idx, stations);
@@ -927,19 +1039,10 @@ void InitialSolution::_local_search(size_t day_idx, size_t truck_idx, std::vecto
     if(tmp_cost < cost)
     {
         stations = tmp_stations;
-        _log("update local search day %zu truck %zu cost %f -> %f\n", day_idx, truck_idx, cost, tmp_cost);
+        _log("update local search truck %zu cost %f -> %f\n", truck_idx, cost, tmp_cost);
+        return true;
     }
-}
-
-void InitialSolution::_local_search( std::vector<std::vector<std::vector<size_t> > >& schedule_pathes)
-{
-    for(size_t i = 0; i < schedule_pathes.size(); ++i)
-    {
-        for(size_t j = 0; j < schedule_pathes[i].size(); ++j)
-        {
-            _local_search(i, j, schedule_pathes[i][j]);
-        }
-    }
+    return false;
 }
 
 void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions)
@@ -958,13 +1061,10 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
             {
                 continue;
             }
-            std::vector<size_t> path = _aco( schedule_solutions[i][j]);
+            std::vector<size_t> path = _aco( j, schedule_solutions[i][j]);
             schedule_pathes[i].push_back(path);
         }
     }
-
-    _log("start local search\n");
-    _local_search( schedule_pathes );
 
     double total_cost = 0.0;
     for(size_t i = 0; i < schedule_solutions.size(); ++i)
