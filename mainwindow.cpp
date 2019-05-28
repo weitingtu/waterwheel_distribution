@@ -46,4 +46,5 @@ void MainWindow::_open()
     init.aco(schedule_solutions);
     init.tsp(schedule_solutions);
     init.near_by(schedule_solutions);
+    init.end();
 }

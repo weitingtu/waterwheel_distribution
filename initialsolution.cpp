@@ -2,6 +2,7 @@
 #include "waterstationmanager.h"
 #include "truckmanager.h"
 #include <tgmath.h>
+#include <time.h>
 
 static const size_t g_max_group_iteration = 1;
 static const double g_diesel_price = 26.3;
@@ -21,6 +22,53 @@ static const double q0 = 0.7;
 static const unsigned int tabu_random_seed = 0;
 static const unsigned int aco_random_seed = 0;
 static const unsigned int start_random_seed = 0;
+
+static const bool dump_to_file = true;
+
+static FILE* _fp = nullptr;
+
+void _open_log_file()
+{
+    if(!dump_to_file)
+    {
+        return;
+    }
+    char filename[40];
+    struct tm *timenow;
+
+    time_t now = time(NULL);
+    timenow = localtime(&now);
+
+    strftime(filename, sizeof(filename), "log_%Y_%m_%d_%H_%M_%S.txt", timenow);
+
+    _fp = fopen(filename, "w");
+
+    if(_fp == nullptr)
+    {
+        printf("failed to open file\n");
+    }
+}
+
+void _close_log_file()
+{
+    if(nullptr == _fp)
+    {
+        return;
+    }
+    fclose(_fp);
+}
+
+void _log(const char* format, ...)
+{
+    va_list argptr;
+    va_start(argptr, format);
+    vfprintf(stdout, format, argptr);
+    if(_fp)
+    {
+        vfprintf(_fp, format, argptr);
+    }
+    va_end(argptr);
+}
 
 InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManager &m) :
     _t(t),
@@ -106,12 +154,12 @@ double InitialSolution::_compute_solution_cost(size_t truck_idx, const std::vect
         size_t target_idx = stations[i];
         double cost = _distance_cost_matrix.at(truck_idx).at(source_idx).at(target_idx);
         cost += _wage_cost_matrix.at(truck_idx).at(source_idx).at(target_idx);
-//        printf("%zu truck %zu -> %zu cost %f\n", truck_idx, source_idx, target_idx, cost );
+//        _log("%zu truck %zu -> %zu cost %f\n", truck_idx, source_idx, target_idx, cost );
         all_cost += cost;
         source_idx = target_idx;
     }
 
-//    printf("cost = %f = %f + penalty %f\n", all_cost + penalty, all_cost, penalty);
+//    _log("cost = %f = %f + penalty %f\n", all_cost + penalty, all_cost, penalty);
     return all_cost + penalty;
 }
 
@@ -121,7 +169,7 @@ double InitialSolution::_compute_all_solution_cost(const std::vector<std::vector
     for(size_t i = 0; i < truck_stations.size(); ++i)
     {
         double cost = _compute_solution_cost(i, truck_stations[i]);
-//        printf("truck %zu cost %f\n", i, cost);
+//        _log("truck %zu cost %f\n", i, cost);
         all_cost += cost;
     }
 
@@ -174,15 +222,15 @@ bool InitialSolution::_is_all_stations_visited(const std::vector<size_t>& statio
     }
     if(s == stations.size())
     {
-//        printf("finished\n");
+//        _log("finished\n");
         return true;
     }
     if(s < stations.size())
     {
-//        printf("not finished\n");
+//        _log("not finished\n");
         return false;
     }
-    printf("check solution error\n");
+    _log("check solution error\n");
     return true;
 }
 
@@ -293,25 +341,25 @@ double InitialSolution::_group_station(const std::vector<size_t>& stations,
     {
         size_t truck_idx = trucks.at(truck_seq_idx);
         const Truck& truck = _t.get_truck(truck_idx);
-//        printf("Run %zu th truck %zu (%f ton)\n", truck_seq_idx, truck_idx, truck.load);
+//        _log("Run %zu th truck %zu (%f ton)\n", truck_seq_idx, truck_idx, truck.load);
         size_t source_idx = 0;
         size_t target_idx = std::numeric_limits<size_t>::max();
         if(!_get_max_distance(source_idx, visited, target_idx))
         {
-//            printf("unable to get max distance station, stop\n");
+//            _log("unable to get max distance station, stop\n");
             break;
         }
-//        printf("max distance station %zu\n", target_idx);
+//        _log("max distance station %zu\n", target_idx);
         double load = truck.load;
         while(load > 0)
         {
             const WaterStation& water_station = _m.get_station(target_idx);
             if(load < water_station.supply)
             {
-//                printf("run out of load %f < %f, next truck\n", load, water_station.supply);
+//                _log("run out of load %f < %f, next truck\n", load, water_station.supply);
                 break;
             }
-//            printf("visit station from %zu to %zu, load %f = %f - %f\n", source_idx, target_idx, load - water_station.supply,
+//            _log("visit station from %zu to %zu, load %f = %f - %f\n", source_idx, target_idx, load - water_station.supply,
 //                   load, water_station.supply);
             load -= water_station.supply;
             visited.at(target_idx) = true;
@@ -320,10 +368,10 @@ double InitialSolution::_group_station(const std::vector<size_t>& stations,
             source_idx = target_idx;
             if(!_get_min_distance_within_load(source_idx, load, visited, target_idx ))
             {
-//                printf("unable to get min distance station, next truck\n");
+//                _log("unable to get min distance station, next truck\n");
                 break;
             }
-//            printf("min distance station %zu\n", target_idx);
+//            _log("min distance station %zu\n", target_idx);
         }
     }
 
@@ -387,7 +435,7 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
         {
             continue;
         }
-//        printf("truck load %f < %f, remove station %zu\n", truck.load, load, station_idx);
+//        _log("truck load %f < %f, remove station %zu\n", truck.load, load, station_idx);
 
         const WaterStation& water_station = _m.get_station(station_idx);
         load -= water_station.supply;
@@ -437,7 +485,7 @@ bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
     const size_t max_count = 20;
     size_t count = 0;
     while (count < max_count) {
-        printf("Run change station iteration %zu\n", count);
+        _log("Run change station iteration %zu\n", count);
         count++;
         new_station_start = station_start;
         _change_start(ignored_stations, station_start, new_station_start);
@@ -469,7 +517,7 @@ void InitialSolution::_change_start(size_t idx,
         double rnd = r01 * water_station.cycle;
         if(start != (int) rnd)
         {
-//            printf("change station %zu start from %d to %d\n", idx, start, (int) rnd);
+//            _log("change station %zu start from %d to %d\n", idx, start, (int) rnd);
             start = (int) rnd;
             break;
         }
@@ -505,7 +553,13 @@ double InitialSolution::_get_schedule_solutions(
 
 void InitialSolution::init()
 {
+    _open_log_file();
     _compute_distance_cost_matrix();
+}
+
+void InitialSolution::end()
+{
+    _close_log_file();
 }
 
 std::vector<int> InitialSolution::_get_random_station_start() const
@@ -538,7 +592,7 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
     size_t count = 0;
     while(count < g_max_group_iteration )
     {
-        printf("Run iteration %zu ", count);
+        _log("Run iteration %zu ", count);
         ++count;
 
         tabu.insert(station_start);
@@ -548,10 +602,10 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
         std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
         double cost = _get_schedule_solutions( schedule, schedule_solutions);
 
-        printf("cost = %f\n", cost);
+        _log("cost = %f\n", cost);
         if(cost < min_cost)
         {
-            printf("Update min cost from %f to %f\n", min_cost, cost);
+            _log("Update min cost from %f to %f\n", min_cost, cost);
             min_cost = cost;
             min_station_start = station_start;
         }
@@ -559,20 +613,20 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
         std::set<size_t> ignored_stations;
         if(_check_solution(schedule_solutions, ignored_stations))
         {
-            printf("All stations are satisfied. Finished\n");
+            _log("All stations are satisfied. Finished\n");
             break;
         }
         std::vector<int> updated_station_start;
         if(!_change_start( tabu, ignored_stations, station_start, updated_station_start))
         {
-            printf("Unable to find new station start. Exit\n");
+            _log("Unable to find new station start. Exit\n");
             break;
         }
         station_start = updated_station_start;
     }
     if(g_max_group_iteration == count)
     {
-        printf("Finish iteration due to reach max count %zu\n", g_max_group_iteration);
+        _log("Finish iteration due to reach max count %zu\n", g_max_group_iteration);
     }
 
     std::vector<std::vector<size_t> > schedule = _m.get_schedule(min_station_start);
@@ -616,7 +670,7 @@ size_t InitialSolution::_develop( const std::vector<std::vector<double>>& value_
 {
     if(stations.empty())
     {
-        printf("error, empty stations\n");
+        _log("error, empty stations\n");
         return std::numeric_limits<size_t>::max();
     }
 
@@ -651,7 +705,7 @@ size_t InitialSolution::_explore( const std::vector<std::vector<double>>& value_
 {
     if(stations.empty())
     {
-        printf("error, empty stations\n");
+        _log("error, empty stations\n");
         return std::numeric_limits<size_t>::max();
     }
 
@@ -704,11 +758,11 @@ bool InitialSolution::_is_develop() const
 
 //    if(rf < q0)
 //    {
-//        printf("rf %f < q0 %f, select develop\n", rf, q0);
+//        _log("rf %f < q0 %f, select develop\n", rf, q0);
 //    }
 //    else
 //    {
-//        printf("rf %f >= q0 %f, select explore\n", rf, q0);
+//        _log("rf %f >= q0 %f, select explore\n", rf, q0);
 //    }
     return rf < q0;
 }
@@ -810,7 +864,7 @@ std::vector<size_t> InitialSolution::_aco( const std::vector<size_t>& stations) 
 {
     if(stations.empty())
     {
-        printf("error, empty stations\n");
+        _log("error, empty stations\n");
         return std::vector<size_t>();
     }
     double L = _get_L(stations);
@@ -873,7 +927,7 @@ void InitialSolution::_local_search(size_t day_idx, size_t truck_idx, std::vecto
     if(tmp_cost < cost)
     {
         stations = tmp_stations;
-        printf("update local search day %zu truck %zu cost %f -> %f\n", day_idx, truck_idx, cost, tmp_cost);
+        _log("update local search day %zu truck %zu cost %f -> %f\n", day_idx, truck_idx, cost, tmp_cost);
     }
 }
 
@@ -895,7 +949,7 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
     std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
     schedule_pathes.resize(schedule_solutions.size());
 
-    printf("start aco\n");
+    _log("start aco\n");
     for(size_t i = 0; i < schedule_solutions.size(); ++i)
     {
         for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
@@ -909,7 +963,7 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
         }
     }
 
-    printf("start local search\n");
+    _log("start local search\n");
     _local_search( schedule_pathes );
 
     double total_cost = 0.0;
@@ -918,11 +972,11 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
         for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
         {
             double cost = _compute_solution_cost(j, schedule_solutions[i][j]);
-            printf("day %zu truck %zu cost %f\n", i, j, cost);
+            _log("day %zu truck %zu cost %f\n", i, j, cost);
             total_cost += cost;
         }
     }
-    printf("total cost = %f\n", total_cost);
+    _log("total cost = %f\n", total_cost);
 }
 
 std::vector<std::vector<std::vector<size_t> > > InitialSolution::_create_real_schedule() const
@@ -1182,7 +1236,7 @@ void InitialSolution::compute_real_cost() const
         cost += _compute_all_solution_cost(schedule_solutions[i]);
     }
 
-    printf("real schedule cost is %f\n", cost);
+    _log("real schedule cost is %f\n", cost);
 }
 
 std::vector<size_t> InitialSolution::_tsp(size_t truck_idx, const std::vector<size_t>& stations,
@@ -1209,7 +1263,7 @@ void InitialSolution::tsp( const std::vector<std::vector<std::vector<size_t> > >
     std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
     schedule_pathes.resize(schedule_solutions.size());
 
-    printf("start tsp\n");
+    _log("start tsp\n");
     double all_cost = 0.0;
     for(size_t i = 0; i < schedule_solutions.size(); ++i)
     {
@@ -1226,7 +1280,7 @@ void InitialSolution::tsp( const std::vector<std::vector<std::vector<size_t> > >
         }
     }
 
-    printf("tsp cost = %f\n", all_cost);
+    _log("tsp cost = %f\n", all_cost);
 }
 
 void InitialSolution::near_by( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const
@@ -1234,7 +1288,7 @@ void InitialSolution::near_by( const std::vector<std::vector<std::vector<size_t>
     std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
     schedule_pathes.resize(schedule_solutions.size());
 
-    printf("start near by\n");
+    _log("start near by\n");
     double all_cost = 0.0;
     for(size_t i = 0; i < schedule_solutions.size(); ++i)
     {
@@ -1251,6 +1305,6 @@ void InitialSolution::near_by( const std::vector<std::vector<std::vector<size_t>
         }
     }
 
-    printf("near by cost = %f\n", all_cost);
+    _log("near by cost = %f\n", all_cost);
 }
 

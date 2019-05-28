@@ -13,6 +13,7 @@ class InitialSolution
 public:
     InitialSolution(const TruckManager& t, const WaterStationManager& m);
     void init();
+    void end();
     std::vector<std::vector<std::vector<size_t> > > tabu();
     void aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions);
     void tsp( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const;
