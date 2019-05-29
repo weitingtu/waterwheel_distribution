@@ -484,6 +484,13 @@ bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
                                     const std::vector<int>& station_start,
                                     std::vector<int>& new_station_start) const
 {
+    double r01 = (double)(rand()) / (RAND_MAX + 1);
+    if(r01 > 0.5)
+    {
+        _log("Probility %f > 0.5, don't change start\n", r01);
+        return true;
+    }
+
     const size_t max_count = 20;
     size_t count = 0;
     while (count < max_count) {
