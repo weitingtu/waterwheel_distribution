@@ -4,7 +4,7 @@
 #include <tgmath.h>
 #include <time.h>
 
-static const size_t g_max_group_iteration = 1;
+static const size_t g_max_group_iteration = 20;
 static const double g_diesel_price = 26.3;
 static const double g_water_price  = 17;
 static const double g_M            = 1000;
@@ -488,6 +488,7 @@ bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
     if(r01 > 0.5)
     {
         _log("Probility %f > 0.5, don't change start\n", r01);
+        new_station_start = station_start;
         return true;
     }
 
