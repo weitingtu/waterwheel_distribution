@@ -634,6 +634,10 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
             min_cost = cost;
             min_station_start = station_start;
         }
+        else
+        {
+            station_start = min_station_start;
+        }
 
         std::set<size_t> ignored_stations;
         if(_check_solution(schedule_solutions, ignored_stations))
