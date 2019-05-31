@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <crtdefs.h>
+#include <random>
 
 class WaterStationManager;
 class TruckManager;
@@ -37,21 +38,21 @@ private:
     void _compute_wage_cost_matrix(std::vector<std::vector<double> >& cost, int wage) const;
     void _compute_distance_cost_matrix();
 
-    void _check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, const std::vector<size_t> &stations, std::vector<size_t>& removed_stations) const;
-    void _check_solution(const std::set<size_t>& ignored_stations, const std::vector<std::vector<size_t> > &stations, std::vector<size_t>& removed_stations) const;
-    bool _check_solution(const std::vector<std::vector<std::vector<size_t> > >& stations, std::set<size_t>& ignored_stations ) const;
+    void _check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, const std::vector<size_t> &stations, std::vector<size_t>& removed_stations);
+    void _check_solution(const std::set<size_t>& ignored_stations, const std::vector<std::vector<size_t> > &stations, std::vector<size_t>& removed_stations);
+    bool _check_solution(const std::vector<std::vector<std::vector<size_t> > >& stations, std::set<size_t>& ignored_stations );
 
-    void _change_start(size_t idx, const std::vector<int> &station_start, std::vector<int> &new_station_start) const;
-    void _change_start(const std::set<size_t>& ignored_stations, const std::vector<int> &station_start, std::vector<int> &new_station_start) const;
+    void _change_start(size_t idx, const std::vector<int> &station_start, std::vector<int> &new_station_start);
+    void _change_start(const std::set<size_t>& ignored_stations, const std::vector<int> &station_start, std::vector<int> &new_station_start);
     bool _change_start(const std::set<std::vector<int> >& tabu,
                        const std::set<size_t>& ignored_stations,
                        const std::vector<int>& station_start,
-                       std::vector<int>& new_station_start) const;
+                       std::vector<int>& new_station_start);
 
     double _get_schedule_solutions( const std::vector<std::vector<size_t> >& schedule,
                                     std::vector<std::vector<std::vector<size_t> > >& schedule_solutions) const;
 
-    std::vector<int> _get_random_station_start() const;
+    std::vector<int> _get_random_station_start();
 
     std::vector<std::vector<double>> _create_pheromone_matrix() const;
     std::vector<std::vector<double>> _create_value_matrix(const std::vector<std::vector<double> > &pheromone_matrix) const;
@@ -60,11 +61,11 @@ private:
                      const std::vector<size_t>& stations) const;
     size_t _explore(const std::vector<std::vector<double>>& value_matrix, const std::vector<bool> &visited,
                      size_t source_idx,
-                     const std::vector<size_t>& stations) const;
-    bool _is_develop() const;
+                     const std::vector<size_t>& stations);
+    bool _is_develop();
     void _local_update_pheromone(const std::vector<size_t> &stations, int q, double Lgb, double Pbest, size_t N, size_t source_idx, size_t target_idx, std::vector<double>& pheromone) const;
     double _get_L(const std::vector<size_t>& stations) const;
-    std::vector<size_t> _aco(size_t truck_idx, const std::vector<size_t>& stations) const;
+    std::vector<size_t> _aco(size_t truck_idx, const std::vector<size_t>& stations);
 
     size_t _get_max_pheromone_idx(const std::vector<std::vector<double>>& pheromone_matrix,
                                             const std::vector<size_t>& stations,
@@ -73,7 +74,7 @@ private:
     std::vector<size_t> _max_pheromone(const std::vector<std::vector<double>>& pheromone_matrix,
                                                     const std::vector<size_t>& stations) const;
     void _disturb_pheromone(const std::vector<size_t>& stations,
-                                         std::vector<std::vector<double>>& pheromone_matrix) const;
+                                         std::vector<std::vector<double>>& pheromone_matrix);
     bool _local_search(size_t truck_idx, std::vector<size_t>& stations) const;
 
     std::vector<std::vector<std::vector<size_t> > > _create_real_schedule() const;
@@ -85,6 +86,11 @@ private:
     const WaterStationManager& _m;
     std::vector<std::vector<std::vector<double> > > _distance_cost_matrix;
     std::vector<std::vector<std::vector<double> > > _wage_cost_matrix;
+    std::default_random_engine _tabu_gen;
+    std::default_random_engine _aco_gen;
+    std::default_random_engine _random_start_gen;
+    std::default_random_engine _change_start_gen;
+    std::uniform_real_distribution<double> _dis;
 };
 
 #endif // INITIALSOLUTION_H

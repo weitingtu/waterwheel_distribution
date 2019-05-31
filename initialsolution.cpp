@@ -22,7 +22,8 @@ static const double rho_prime = 0.7;
 static const double q0 = 0.7;
 static const unsigned int tabu_random_seed = 0;
 static const unsigned int aco_random_seed = 0;
-static const unsigned int start_random_seed = 0;
+static const unsigned int random_start_random_seed = 0;
+static const unsigned int change_start_random_seed = 0;
 static const int QQ = 1;
 
 static const bool dump_to_file = false;
@@ -76,7 +77,12 @@ InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManage
     _t(t),
     _m(m),
     _distance_cost_matrix(),
-    _wage_cost_matrix()
+    _wage_cost_matrix(),
+    _tabu_gen(std::default_random_engine(tabu_random_seed)),
+    _aco_gen(std::default_random_engine(aco_random_seed)),
+    _random_start_gen(std::default_random_engine(random_start_random_seed)),
+    _change_start_gen(std::default_random_engine(change_start_random_seed)),
+    _dis(0, 1.0)
 {
 }
 
@@ -412,7 +418,10 @@ std::vector<std::vector<size_t> > InitialSolution::_group_station(const std::vec
     return min_truck_stations;
 }
 
-void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, size_t truck_idx, const std::vector<size_t>& stations, std::vector<size_t>& removed_stations) const
+void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations,
+                                      size_t truck_idx, const
+                                      std::vector<size_t>& stations,
+                                      std::vector<size_t>& removed_stations)
 {
     const Truck& truck = _t.get_truck(truck_idx);
     double load = 0.0;
@@ -429,7 +438,8 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
     std::set<size_t> removed_set;
     while(truck.load < load)
     {
-        double r01 = (double)(rand()) / (RAND_MAX + 1);
+//        double r01 = (double)(rand()) / (RAND_MAX + 1);
+        double r01 = _dis(_tabu_gen);
         double rnd = r01 * (stations.size());
         size_t selected_idx = (size_t) rnd;
         size_t station_idx = stations.at(selected_idx);
@@ -447,7 +457,9 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
     }
 }
 
-void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, const std::vector<std::vector<size_t> >& stations, std::vector<size_t>& removed_stations) const
+void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations,
+                                      const std::vector<std::vector<size_t> >& stations,
+                                      std::vector<size_t>& removed_stations)
 {
     removed_stations.clear();
     for(size_t i = 0; i < stations.size(); ++i)
@@ -457,7 +469,7 @@ void InitialSolution::_check_solution(const std::set<size_t>& ignored_stations, 
 }
 
 bool InitialSolution::_check_solution(const std::vector<std::vector<std::vector<size_t> > >& stations,
-                                      std::set<size_t>& ignored_stations ) const
+                                      std::set<size_t>& ignored_stations )
 {
     ignored_stations.clear();
     for(size_t i = 0; i < stations.size(); ++i)
@@ -482,9 +494,10 @@ bool InitialSolution::_check_solution(const std::vector<std::vector<std::vector<
 bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
                                     const std::set<size_t>& ignored_stations,
                                     const std::vector<int>& station_start,
-                                    std::vector<int>& new_station_start) const
+                                    std::vector<int>& new_station_start)
 {
-    double r01 = (double)(rand()) / (RAND_MAX + 1);
+//    double r01 = (double)(rand()) / (RAND_MAX + 1);
+    double r01 = _dis(_change_start_gen);
     if(r01 > 0.5)
     {
         _log("Probility %f > 0.5, don't change start\n", r01);
@@ -516,14 +529,15 @@ bool InitialSolution::_change_start(const std::set<std::vector<int> >& tabu,
 void InitialSolution::_change_start(size_t idx,
                                     const std::vector<int>& station_start,
                                     std::vector<int>& new_station_start
-                                    ) const
+                                    )
 {
     const WaterStation& water_station = _m.get_station(idx);
     int start = station_start.at(idx);
 
     while(true)
     {
-        double r01 = (double)(rand()) / (RAND_MAX + 1);
+//        double r01 = (double)(rand()) / (RAND_MAX + 1);
+        double r01 = _dis(_change_start_gen);
         double rnd = r01 * water_station.cycle;
         if(start != (int) rnd)
         {
@@ -538,7 +552,7 @@ void InitialSolution::_change_start(size_t idx,
 void InitialSolution::_change_start(const std::set<size_t>& ignored_stations,
                                     const std::vector<int>& station_start,
                                     std::vector<int>& new_station_start
-                                    ) const
+                                    )
 {
     for(size_t idx : ignored_stations)
     {
@@ -572,15 +586,16 @@ void InitialSolution::end()
     _close_log_file();
 }
 
-std::vector<int> InitialSolution::_get_random_station_start() const
+std::vector<int> InitialSolution::_get_random_station_start()
 {
-    srand(start_random_seed);
+//    srand(random_start_random_seed);
     std::vector<int> station_start;
     station_start.reserve(_m.get_station_size());
 
     for(size_t i = 0; i < _m.get_station_size(); ++i)
     {
-        double r01 = (double)(rand()) / (RAND_MAX + 1);
+//        double r01 = (double)(rand()) / (RAND_MAX + 1);
+        double r01 = _dis(_random_start_gen);
         double rnd = r01 * (_m.get_schedule_size());
         station_start.push_back((size_t) rnd);
     }
@@ -598,7 +613,7 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
 //    std::vector<int> station_start = _get_random_station_start();
     std::vector<int> station_start = _m.get_station_start();
 
-    srand(tabu_random_seed);
+//    srand(tabu_random_seed);
     size_t count = 0;
     while(count < g_max_group_iteration )
     {
@@ -729,7 +744,7 @@ size_t InitialSolution::_develop( const std::vector<std::vector<double>>& value_
 size_t InitialSolution::_explore( const std::vector<std::vector<double>>& value_matrix,
                                   const std::vector<bool>& visited,
                                   size_t source_idx,
-                                  const std::vector<size_t>& stations) const
+                                  const std::vector<size_t>& stations)
 {
     if(stations.empty())
     {
@@ -767,7 +782,8 @@ size_t InitialSolution::_explore( const std::vector<std::vector<double>>& value_
     }
 
     size_t idx = std::numeric_limits<size_t>::max();
-    double rf = rand() / (RAND_MAX + 1.0);
+//    double rf = rand() / (RAND_MAX + 1.0);
+    double rf = _dis(_aco_gen);
     for(size_t i = 0; i < cp.size(); ++i)
     {
         if(rf < cp[i])
@@ -780,9 +796,10 @@ size_t InitialSolution::_explore( const std::vector<std::vector<double>>& value_
     return idx;
 }
 
-bool InitialSolution::_is_develop() const
+bool InitialSolution::_is_develop()
 {
-    double rf = rand() / (RAND_MAX + 1.0);
+//    double rf = rand() / (RAND_MAX + 1.0);
+    double rf = _dis(_aco_gen);
 
 //    if(rf < q0)
 //    {
@@ -902,7 +919,7 @@ std::vector<size_t> InitialSolution::_max_pheromone(const std::vector<std::vecto
 }
 
 void InitialSolution::_disturb_pheromone(const std::vector<size_t>& stations,
-                                         std::vector<std::vector<double>>& pheromone_matrix) const
+                                         std::vector<std::vector<double>>& pheromone_matrix)
 {
     for(size_t i = 0; i <stations.size(); ++i)
     {
@@ -914,18 +931,20 @@ void InitialSolution::_disturb_pheromone(const std::vector<size_t>& stations,
             {
                 continue;
             }
-            double r01 = (double)(rand()) / (RAND_MAX + 1);
+//            double r01 = (double)(rand()) / (RAND_MAX + 1);
+            double r01 = _dis(_aco_gen);
             if(r01 > 0.5)
             {
                 continue;
             }
-            double r02 = (double)(rand()) / (RAND_MAX + 1);
+//            double r02 = (double)(rand()) / (RAND_MAX + 1);
+            double r02 = _dis(_aco_gen);
             pheromone_matrix[source_idx][target_idx] *= r02;
         }
     }
 }
 
-std::vector<size_t> InitialSolution::_aco( size_t truck_idx, const std::vector<size_t>& stations) const
+std::vector<size_t> InitialSolution::_aco( size_t truck_idx, const std::vector<size_t>& stations)
 {
     if(stations.empty())
     {
@@ -1055,7 +1074,7 @@ bool InitialSolution::_local_search(size_t truck_idx, std::vector<size_t>& stati
 
 void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions)
 {
-    srand(aco_random_seed);
+//    srand(aco_random_seed);
 
     std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
     schedule_pathes.resize(schedule_solutions.size());
