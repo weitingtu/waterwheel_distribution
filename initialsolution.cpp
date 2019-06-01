@@ -3,6 +3,7 @@
 #include "truckmanager.h"
 #include <tgmath.h>
 #include <time.h>
+#include <chrono>
 
 static const size_t g_max_group_iteration = 20;
 static const double g_diesel_price = 26.3;
@@ -82,7 +83,8 @@ InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManage
     _aco_gen(std::default_random_engine(aco_random_seed)),
     _random_start_gen(std::default_random_engine(random_start_random_seed)),
     _change_start_gen(std::default_random_engine(change_start_random_seed)),
-    _dis(0, 1.0)
+    _dis(0, 1.0),
+    _seconds(0)
 {
 }
 
@@ -605,6 +607,8 @@ std::vector<int> InitialSolution::_get_random_station_start()
 
 std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     double min_cost = std::numeric_limits<double>::max();
     std::vector<int> min_station_start;
 
@@ -661,6 +665,10 @@ std::vector<std::vector<std::vector<size_t> > > InitialSolution::tabu()
     std::vector<std::vector<size_t> > schedule = _m.get_schedule(min_station_start);
     std::vector<std::vector<std::vector<size_t> > > schedule_solutions;
     _get_schedule_solutions( schedule, schedule_solutions);
+
+    std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+
+    _seconds += std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
 
     return schedule_solutions;
 }
@@ -1078,6 +1086,8 @@ bool InitialSolution::_local_search(size_t truck_idx, std::vector<size_t>& stati
 
 void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >& schedule_solutions)
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 //    srand(aco_random_seed);
 
     std::vector<std::vector<std::vector<size_t> > > schedule_pathes;
@@ -1108,6 +1118,11 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
         }
     }
     _log("total cost = %f\n", total_cost);
+
+    std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+
+    _seconds += std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+    printf( "Tabu + ACO time difference = %lld seconds\n", _seconds );
 }
 
 std::vector<std::vector<std::vector<size_t> > > InitialSolution::_create_real_schedule() const

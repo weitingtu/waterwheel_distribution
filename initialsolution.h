@@ -91,6 +91,7 @@ private:
     std::default_random_engine _random_start_gen;
     std::default_random_engine _change_start_gen;
     std::uniform_real_distribution<double> _dis;
+    long long int _seconds;
 };
 
 #endif // INITIALSOLUTION_H
