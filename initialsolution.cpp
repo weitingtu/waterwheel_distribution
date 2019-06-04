@@ -28,6 +28,7 @@ static const unsigned int change_start_random_seed = 0;
 static const int QQ = 1;
 
 static const bool dump_to_file = false;
+static const bool dump_sequence = true;
 
 static FILE* _fp = nullptr;
 
@@ -86,6 +87,57 @@ InitialSolution::InitialSolution(const TruckManager &t, const WaterStationManage
     _dis(0, 1.0),
     _seconds(0)
 {
+}
+
+void InitialSolution::_dump_sequence( const std::vector<std::vector<std::vector<size_t> > >& schedule_pathes ) const
+{
+    if(!dump_sequence)
+    {
+        return;
+    }
+
+    std::vector<FILE*> fp(3, nullptr);
+
+    fp[0] = fopen("sequence_13.csv", "w");
+    if(fp[0] == nullptr)
+    {
+        printf("failed to open file 13 sequence\n");
+    }
+
+    fp[1] = fopen("sequence_19.csv", "w");
+    if(fp[1] == nullptr)
+    {
+        printf("failed to open file 19 sequence\n");
+    }
+
+    fp[2] = fopen("sequence_32.csv", "w");
+    if(fp[2] == nullptr)
+    {
+        printf("failed to open file 32 sequence\n");
+    }
+
+    for(size_t i = 0; i < fp.size(); ++i)
+    {
+        fprintf(fp[i], "date, sequence\n");
+    }
+
+    for(size_t i = 0; i < schedule_pathes.size(); ++i)
+    {
+        for(size_t j = 0; j < schedule_pathes[i].size(); ++j)
+        {
+            fprintf(fp[j], "%zu,", i + 1);
+            for(size_t k = 0; k < schedule_pathes[i][j].size(); ++k)
+            {
+                fprintf(fp[j], "%zu,", schedule_pathes[i][j][k]);
+            }
+            fprintf(fp[j], "\n");
+        }
+    }
+
+    for(size_t i = 0; i < fp.size(); ++i)
+    {
+        fclose(fp[i]);
+    }
 }
 
 void InitialSolution::_compute_distance_cost_matrix(std::vector<std::vector<double> >& cost, double km_per_liter) const
@@ -1123,6 +1175,8 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
 
     _seconds += std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
     printf( "Tabu + ACO time difference = %lld seconds\n", _seconds );
+
+    _dump_sequence( schedule_pathes );
 }
 
 std::vector<std::vector<std::vector<size_t> > > InitialSolution::_create_real_schedule() const

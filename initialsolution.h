@@ -22,6 +22,7 @@ public:
     void compute_real_cost() const;
 
 private:
+    void _dump_sequence( const std::vector<std::vector<std::vector<size_t> > >& schedule_pathes ) const;
     double _compute_solution_cost(size_t truck_idx, const std::vector<size_t>& stations) const;
     double _compute_all_solution_cost(const std::vector<std::vector<size_t> >& truck_stations) const;
     size_t _get_min_distance(size_t source_idx, const std::set<size_t>& targets) const;
