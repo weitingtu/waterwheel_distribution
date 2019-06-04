@@ -1108,11 +1108,11 @@ void InitialSolution::aco( const std::vector<std::vector<std::vector<size_t> > >
     }
 
     double total_cost = 0.0;
-    for(size_t i = 0; i < schedule_solutions.size(); ++i)
+    for(size_t i = 0; i < schedule_pathes.size(); ++i)
     {
-        for(size_t j = 0; j < schedule_solutions[i].size(); ++j)
+        for(size_t j = 0; j < schedule_pathes[i].size(); ++j)
         {
-            double cost = _compute_solution_cost(j, schedule_solutions[i][j]);
+            double cost = _compute_solution_cost(j, schedule_pathes[i][j]);
             _log("day %zu truck %zu cost %f\n", i, j, cost);
             total_cost += cost;
         }
